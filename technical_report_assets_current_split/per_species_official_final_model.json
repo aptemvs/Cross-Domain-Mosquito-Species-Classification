@@ -1,0 +1,92 @@
+[
+  {
+    "species": "Aedes aegypti",
+    "species_short": "Ae.aeg",
+    "BA_seen_mean": 0.917096,
+    "BA_seen_std": 0.010925,
+    "BA_unseen_mean": 0.027083,
+    "BA_unseen_std": 0.052694,
+    "DSG_mean": 0.890012,
+    "DSG_std": 0.056065
+  },
+  {
+    "species": "Aedes albopictus",
+    "species_short": "Ae.alb",
+    "BA_seen_mean": 0.851291,
+    "BA_seen_std": 0.014785,
+    "BA_unseen_mean": 0.073986,
+    "BA_unseen_std": 0.109583,
+    "DSG_mean": 0.777305,
+    "DSG_std": 0.114493
+  },
+  {
+    "species": "Culex quinquefasciatus",
+    "species_short": "Cx.qui",
+    "BA_seen_mean": 0.960836,
+    "BA_seen_std": 0.007923,
+    "BA_unseen_mean": 0.001488,
+    "BA_unseen_std": 0.002399,
+    "DSG_mean": 0.959348,
+    "DSG_std": 0.00767
+  },
+  {
+    "species": "Anopheles gambiae",
+    "species_short": "An.gam",
+    "BA_seen_mean": 0.919114,
+    "BA_seen_std": 0.015659,
+    "BA_unseen_mean": 0.000122,
+    "BA_unseen_std": 0.000367,
+    "DSG_mean": 0.918992,
+    "DSG_std": 0.015855
+  },
+  {
+    "species": "Anopheles arabiensis",
+    "species_short": "An.ara",
+    "BA_seen_mean": 0.718836,
+    "BA_seen_std": 0.043547,
+    "BA_unseen_mean": 0.007418,
+    "BA_unseen_std": 0.014953,
+    "DSG_mean": 0.711418,
+    "DSG_std": 0.054586
+  },
+  {
+    "species": "Anopheles dirus",
+    "species_short": "An.dir",
+    "BA_seen_mean": null,
+    "BA_seen_std": null,
+    "BA_unseen_mean": 0.005,
+    "BA_unseen_std": 0.015,
+    "DSG_mean": null,
+    "DSG_std": null
+  },
+  {
+    "species": "Culex pipiens",
+    "species_short": "Cx.pip",
+    "BA_seen_mean": 0.9258,
+    "BA_seen_std": 0.02422,
+    "BA_unseen_mean": 0.811765,
+    "BA_unseen_std": 0.028516,
+    "DSG_mean": 0.114035,
+    "DSG_std": 0.038237
+  },
+  {
+    "species": "Anopheles minimus",
+    "species_short": "An.min",
+    "BA_seen_mean": null,
+    "BA_seen_std": null,
+    "BA_unseen_mean": 0.225253,
+    "BA_unseen_std": 0.061117,
+    "DSG_mean": null,
+    "DSG_std": null
+  },
+  {
+    "species": "Anopheles stephensi",
+    "species_short": "An.ste",
+    "BA_seen_mean": null,
+    "BA_seen_std": null,
+    "BA_unseen_mean": 0.381081,
+    "BA_unseen_std": 0.150698,
+    "DSG_mean": null,
+    "DSG_std": null
+  }
+]

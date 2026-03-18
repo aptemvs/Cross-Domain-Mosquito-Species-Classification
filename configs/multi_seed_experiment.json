@@ -1,0 +1,23 @@
+{
+  "seeds": [42, 3407, 1234, 2023, 2024, 1024, 2048, 4096, 8192, 10086],
+  "dataset_root": "./Development_data/raw_audio",
+  "train_ids_path": "./Development_data/metadata/Training_ids.txt",
+  "val_ids_path": "./Development_data/metadata/Validation_ids.txt",
+  "test_ids_path": "./Development_data/metadata/Test_ids.txt",
+  "feature_root": "./Development_data/feature",
+  "output_root": "./outputs",
+  "sample_rate": 8000,
+  "batch_size": 64,
+  "eval_batch_size": 8,
+  "num_workers": 4,
+  "train_crop_seconds": 2.0,
+  "normalize_waveform": true,
+  "normalize_features": true,
+  "epochs": 100,
+  "early_stopping_min_epoch": 10,
+  "early_stopping_patience": 5,
+  "learning_rate": 0.001,
+  "weight_decay": 0.0001,
+  "dropout": 0.2,
+  "device": "auto"
+}

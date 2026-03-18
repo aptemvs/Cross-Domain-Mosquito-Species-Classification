@@ -1,0 +1,58 @@
+[
+  {
+    "metric": "species_accuracy",
+    "validation_mean": 0.90561,
+    "validation_std": 0.007648,
+    "test_mean": 0.782695,
+    "test_std": 0.006792
+  },
+  {
+    "metric": "species_balanced_accuracy",
+    "validation_mean": 0.852203,
+    "validation_std": 0.010827,
+    "test_mean": 0.541118,
+    "test_std": 0.014039
+  },
+  {
+    "metric": "domain_accuracy",
+    "validation_mean": 0.999151,
+    "validation_std": 9e-05,
+    "test_mean": 0.922328,
+    "test_std": 0.023025
+  },
+  {
+    "metric": "loss",
+    "validation_mean": 0.258336,
+    "validation_std": 0.019666,
+    "test_mean": 1.636667,
+    "test_std": 0.142887
+  },
+  {
+    "metric": "epochs_ran",
+    "validation_mean": 23.6,
+    "validation_std": 9.850888,
+    "test_mean": 23.6,
+    "test_std": 9.850888
+  },
+  {
+    "metric": "BA_seen",
+    "validation_mean": "n/a",
+    "validation_std": "n/a",
+    "test_mean": 0.880582,
+    "test_std": 0.010791
+  },
+  {
+    "metric": "BA_unseen",
+    "validation_mean": "n/a",
+    "validation_std": "n/a",
+    "test_mean": 0.175113,
+    "test_std": 0.019705
+  },
+  {
+    "metric": "DSG",
+    "validation_mean": "n/a",
+    "validation_std": "n/a",
+    "test_mean": 0.705469,
+    "test_std": 0.024794
+  }
+]

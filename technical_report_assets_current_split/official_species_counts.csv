@@ -1,0 +1,10 @@
+species,species_short,seen_test_clips,unseen_test_clips
+Aedes aegypti,Ae.aeg,7967,192
+Aedes albopictus,Ae.alb,1433,419
+Culex quinquefasciatus,Cx.qui,6534,672
+Anopheles gambiae,An.gam,3882,818
+Anopheles arabiensis,An.ara,292,1820
+Anopheles dirus,An.dir,0,40
+Culex pipiens,Cx.pip,2907,68
+Anopheles minimus,An.min,0,99
+Anopheles stephensi,An.ste,0,74

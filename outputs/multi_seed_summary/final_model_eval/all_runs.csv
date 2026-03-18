@@ -1,0 +1,8 @@
+seed,checkpoint_path,val_loss,val_species_accuracy,val_species_balanced_accuracy,val_domain_accuracy,test_loss,test_species_accuracy,test_species_balanced_accuracy,test_BA_seen,test_BA_unseen,test_DSG,test_num_seen_samples,test_num_unseen_samples,test_domain_accuracy
+2023,outputs/MTRCNN_seed2023_B64_E100_earlystop_min10_pati5/model/model_final.pth,0.252675,0.907884,0.853112,0.999148,1.748374,0.785061,0.517065,0.890838,0.156561,0.734277,23015,4202,0.90561
+2024,outputs/MTRCNN_seed2024_B64_E100_earlystop_min10_pati5/model/model_final.pth,0.239952,0.91316,0.835891,0.999115,1.752101,0.788992,0.548992,0.883926,0.173937,0.709988,23015,4202,0.937723
+1024,outputs/MTRCNN_seed1024_B64_E100_earlystop_min10_pati5/model/model_final.pth,0.252351,0.909326,0.843538,0.999082,1.744142,0.783995,0.518561,0.879085,0.140719,0.738366,23015,4202,0.927803
+2048,outputs/MTRCNN_seed2048_B64_E100_earlystop_min10_pati5/model/model_final.pth,0.231016,0.914274,0.844293,0.999279,1.648932,0.794136,0.525675,0.884884,0.153979,0.730905,23015,4202,0.930485
+4096,outputs/MTRCNN_seed4096_B64_E100_earlystop_min10_pati5/model/model_final.pth,0.254414,0.90736,0.828798,0.998886,1.443056,0.783995,0.536257,0.874186,0.168712,0.705474,23015,4202,0.93166
+8192,outputs/MTRCNN_seed8192_B64_E100_earlystop_min10_pati5/model/model_final.pth,0.255218,0.906148,0.801371,0.999017,1.637404,0.784657,0.568053,0.877855,0.205752,0.672103,23015,4202,0.918544
+10086,outputs/MTRCNN_seed10086_B64_E100_earlystop_min10_pati5/model/model_final.pth,0.240752,0.912308,0.850749,0.999214,1.713737,0.784289,0.552613,0.890776,0.17229,0.718485,23015,4202,0.901422

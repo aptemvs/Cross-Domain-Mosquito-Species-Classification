@@ -1,0 +1,165 @@
+"""Shared utility functions for the DCASE2026 mosquito baseline.
+
+Author: Yuanbo Hou
+Email: Yuanbo.Hou@eng.ox.ac.uk
+Affiliation: Machine Learning Research Group, University of Oxford
+"""
+
+import csv
+import json
+import logging
+import math
+import os
+import random
+import socket
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Union
+
+import numpy as np
+import torch
+from torch.utils.data import DataLoader
+
+
+def set_seed(seed: int) -> None:
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+
+def choose_device(requested_device: str) -> torch.device:
+    if requested_device == "cpu":
+        return torch.device("cpu")
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    if torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
+
+
+def make_output_dir(output_root: str, experiment_name: str) -> Path:
+    output_dir = Path(output_root) / experiment_name
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return output_dir
+
+
+def acquire_experiment_lock(output_dir: Path, experiment_name: str) -> Path:
+    lock_path = output_dir / ".experiment.lock"
+    payload = {
+        "experiment_name": experiment_name,
+        "pid": os.getpid(),
+        "hostname": socket.gethostname(),
+    }
+    flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY
+    try:
+        file_descriptor = os.open(str(lock_path), flags)
+    except FileExistsError:
+        return None
+    with os.fdopen(file_descriptor, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2)
+    return lock_path
+
+
+def release_experiment_lock(lock_path: Optional[Path]) -> None:
+    if lock_path is not None and lock_path.exists():
+        lock_path.unlink()
+
+
+def make_logger(log_path: Path) -> logging.Logger:
+    logger = logging.getLogger(str(log_path))
+    logger.setLevel(logging.INFO)
+    logger.handlers.clear()
+    formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
+
+    file_handler = logging.FileHandler(log_path, encoding="utf-8")
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
+    return logger
+
+
+def append_metrics(csv_path: Path, row: Dict) -> None:
+    file_exists = csv_path.exists()
+    with open(csv_path, "a", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(row.keys()))
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(row)
+
+
+def save_json(path: Path, payload: Union[Dict, List]) -> None:
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2)
+
+
+def load_json(path: Path) -> Union[Dict, List]:
+    with open(path, "r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def mean_std(values: List[float]) -> Tuple[float, float]:
+    mean_value = sum(values) / len(values)
+    variance = sum((value - mean_value) ** 2 for value in values) / len(values)
+    return mean_value, math.sqrt(variance)
+
+
+def format_mean_std(values: List[float]) -> str:
+    mean_value, std_value = mean_std(values)
+    return f"{mean_value:.6f} +- {std_value:.6f}"
+
+
+def write_csv(path: Path, rows: List[Dict]) -> None:
+    with open(path, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def write_summary_table(path: Path, report_rows: List[Dict]) -> None:
+    headers = ["metric", "validation", "test"]
+    lines = [
+        "| " + " | ".join(headers) + " |",
+        "| " + " | ".join(["---"] * len(headers)) + " |",
+    ]
+    for row in report_rows:
+        lines.append(f"| {row['metric']} | {row['validation']} | {row['test']} |")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def make_loader(dataset, batch_size: int, shuffle: bool, num_workers: int, device: torch.device, collate_fn) -> DataLoader:
+    return DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        num_workers=num_workers,
+        collate_fn=collate_fn,
+        pin_memory=device.type == "cuda",
+    )
+
+
+def split_feature_path(config: dict, split_name: str) -> Path:
+    return Path(config["feature_root"]) / f"{split_name.lower()}_features.pkl"
+
+
+def training_stats_path(config: dict) -> Path:
+    return Path(config["feature_root"]) / "training_feature_stats.json"
+
+
+def max_train_frames(config: Dict) -> Optional[int]:
+    if not config.get("train_crop_seconds"):
+        return None
+    return max(1, int(round(config["train_crop_seconds"] * config["sample_rate"] / config["hop_length"])))
+
+
+def build_model(config: dict, device: torch.device):
+    from framework.metadata import DOMAIN_NAMES, SPECIES_NAMES
+    from framework.model import MTRCNNClassifier
+
+    return MTRCNNClassifier(
+        config=config,
+        num_species_classes=len(SPECIES_NAMES),
+        num_domain_classes=len(DOMAIN_NAMES),
+    ).to(device)

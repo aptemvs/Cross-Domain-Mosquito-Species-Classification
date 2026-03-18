@@ -1,0 +1,50 @@
+[
+  {
+    "split": "training",
+    "num_clips": 213647,
+    "mean_frames": 66.891,
+    "median_frames": 63.0,
+    "mode_frames": 63,
+    "mode_count": 212339,
+    "min_frames": 4,
+    "max_frames": 29390,
+    "mean_seconds": 0.669,
+    "median_seconds": 0.63,
+    "mode_seconds": 0.63,
+    "min_seconds": 0.04,
+    "max_seconds": 293.9,
+    "iterations_at_batch_64": 3339
+  },
+  {
+    "split": "validation",
+    "num_clips": 30516,
+    "mean_frames": 65.083,
+    "median_frames": 63.0,
+    "mode_frames": 63,
+    "mode_count": 30334,
+    "min_frames": 9,
+    "max_frames": 6461,
+    "mean_seconds": 0.651,
+    "median_seconds": 0.63,
+    "mode_seconds": 0.63,
+    "min_seconds": 0.09,
+    "max_seconds": 64.61,
+    "iterations_at_batch_64": 477
+  },
+  {
+    "split": "test",
+    "num_clips": 27217,
+    "mean_frames": 204.347,
+    "median_frames": 63.0,
+    "mode_frames": 63,
+    "mode_count": 22983,
+    "min_frames": 8,
+    "max_frames": 15239,
+    "mean_seconds": 2.043,
+    "median_seconds": 0.63,
+    "mode_seconds": 0.63,
+    "min_seconds": 0.08,
+    "max_seconds": 152.39,
+    "iterations_at_batch_64": 426
+  }
+]

@@ -1,0 +1,56 @@
+[
+  {
+    "species": "Aedes aegypti",
+    "species_short": "Ae.aeg",
+    "seen_test_clips": 7967,
+    "unseen_test_clips": 192
+  },
+  {
+    "species": "Aedes albopictus",
+    "species_short": "Ae.alb",
+    "seen_test_clips": 1433,
+    "unseen_test_clips": 419
+  },
+  {
+    "species": "Culex quinquefasciatus",
+    "species_short": "Cx.qui",
+    "seen_test_clips": 6534,
+    "unseen_test_clips": 672
+  },
+  {
+    "species": "Anopheles gambiae",
+    "species_short": "An.gam",
+    "seen_test_clips": 3882,
+    "unseen_test_clips": 818
+  },
+  {
+    "species": "Anopheles arabiensis",
+    "species_short": "An.ara",
+    "seen_test_clips": 292,
+    "unseen_test_clips": 1820
+  },
+  {
+    "species": "Anopheles dirus",
+    "species_short": "An.dir",
+    "seen_test_clips": 0,
+    "unseen_test_clips": 40
+  },
+  {
+    "species": "Culex pipiens",
+    "species_short": "Cx.pip",
+    "seen_test_clips": 2907,
+    "unseen_test_clips": 68
+  },
+  {
+    "species": "Anopheles minimus",
+    "species_short": "An.min",
+    "seen_test_clips": 0,
+    "unseen_test_clips": 99
+  },
+  {
+    "species": "Anopheles stephensi",
+    "species_short": "An.ste",
+    "seen_test_clips": 0,
+    "unseen_test_clips": 74
+  }
+]

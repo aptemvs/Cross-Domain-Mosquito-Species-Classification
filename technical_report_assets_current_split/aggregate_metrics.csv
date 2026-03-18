@@ -1,0 +1,9 @@
+metric,validation_mean,validation_std,test_mean,test_std
+species_accuracy,0.90561,0.007648,0.782695,0.006792
+species_balanced_accuracy,0.852203,0.010827,0.541118,0.014039
+domain_accuracy,0.999151,9e-05,0.922328,0.023025
+loss,0.258336,0.019666,1.636667,0.142887
+epochs_ran,23.6,9.850888,23.6,9.850888
+BA_seen,n/a,n/a,0.880582,0.010791
+BA_unseen,n/a,n/a,0.175113,0.019705
+DSG,n/a,n/a,0.705469,0.024794

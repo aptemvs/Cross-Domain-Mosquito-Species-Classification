@@ -1,0 +1,37 @@
+[
+  {
+    "metric": "loss",
+    "validation": "0.261275 +- 0.019419",
+    "test": "1.625349 +- 0.121943"
+  },
+  {
+    "metric": "species_accuracy",
+    "validation": "0.904649 +- 0.007520",
+    "test": "0.782688 +- 0.006524"
+  },
+  {
+    "metric": "species_balanced_accuracy",
+    "validation": "0.852525 +- 0.009247",
+    "test": "0.548866 +- 0.003982"
+  },
+  {
+    "metric": "domain_accuracy",
+    "validation": "0.999181 +- 0.000077",
+    "test": "0.924007 +- 0.026146"
+  },
+  {
+    "metric": "BA_seen",
+    "validation": "n/a",
+    "test": "0.879283 +- 0.010147"
+  },
+  {
+    "metric": "BA_unseen",
+    "validation": "n/a",
+    "test": "0.185414 +- 0.013971"
+  },
+  {
+    "metric": "DSG",
+    "validation": "n/a",
+    "test": "0.693869 +- 0.018579"
+  }
+]

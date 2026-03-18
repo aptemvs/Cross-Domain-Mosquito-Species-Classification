@@ -1,0 +1,10 @@
+species,training,validation,test
+Aedes aegypti,64251,9177,8159
+Aedes albopictus,14582,2083,1852
+Anopheles arabiensis,16630,2375,2112
+Anopheles dirus,76,11,40
+Anopheles gambiae,37011,5287,4700
+Anopheles minimus,395,56,99
+Anopheles stephensi,525,75,74
+Culex pipiens,23432,3347,2975
+Culex quinquefasciatus,56745,8105,7206

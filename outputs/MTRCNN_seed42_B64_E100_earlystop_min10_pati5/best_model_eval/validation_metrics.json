@@ -1,0 +1,17 @@
+{
+  "loss": 0.2438504292816528,
+  "species_loss": 0.24095514631898945,
+  "domain_loss": 0.0028952853993067774,
+  "species_accuracy": 0.9104076623916626,
+  "species_balanced_accuracy": 0.8519298169347975,
+  "domain_accuracy": 0.9990824460983276,
+  "domain_balanced_accuracy": 0.7118644714355469,
+  "species_ba_D1": 0.792162706454595,
+  "species_ba_D4": 0.25,
+  "species_ba_D5": 0.8852419555187225,
+  "species_ba_D3": 0.5698412756125132,
+  "species_ba_D2": 0.8125,
+  "num_prediction_rows": 30516,
+  "split": "validation",
+  "checkpoint_path": "outputs/MTRCNN_seed42_B64_E100_earlystop_min10_pati5/model/model_best.pth"
+}
