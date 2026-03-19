@@ -1,8 +1,8 @@
 # BioDCASE 2026 Cross-Domain Mosquito Species Classification Baseline
 
-This repository contains the released baseline for the [BioDCASE 2026 Cross-Domain Mosquito Species Classification (CD-MSC)](https://biodcase.github.io/challenge2026/summary#cross-domain-mosquito-species-classification) task. It includes the baseline code, recommended development split metadata, extracted feature statistics, released checkpoints and logs for 10 fixed seeds, and report-ready result assets.
+This repository contains the released baseline for the [BioDCASE 2026 Cross-Domain Mosquito Species Classification (CD-MSC)](https://biodcase.github.io/challenge2026/task5) task. It includes the baseline code, recommended development split metadata, extracted feature statistics, released checkpoints and logs for 10 fixed seeds, and report-ready result assets.
  
-- Official challenge page: [BioDCASE 2026 CD-MSC challenge](https://biodcase.github.io/challenge2026/summary#cross-domain-mosquito-species-classification)
+- Official challenge page: [BioDCASE 2026 CD-MSC challenge](https://biodcase.github.io/challenge2026/task5)
 - Development dataset: [Zenodo Development dataset](https://zenodo.org/records/19095788)
   
 ## Repository Layout
