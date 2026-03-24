@@ -4,6 +4,7 @@ This repository contains the released baseline for the [BioDCASE 2026 Cross-Doma
  
 - Official challenge page: [BioDCASE 2026 CD-MSC challenge](https://biodcase.github.io/challenge2026/task5)
 - Development dataset: [Zenodo Development dataset](https://zenodo.org/records/19095788)
+- Baseline paper: [BioDCASE 2026 Challenge Baseline for Cross-Domain Mosquito Species Classification](https://arxiv.org/abs/2603.20118)
   
 ## Repository Layout
 
