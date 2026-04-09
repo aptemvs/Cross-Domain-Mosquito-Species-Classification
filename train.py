@@ -1,4 +1,4 @@
-"""Training entry point for the DCASE2026 mosquito baseline.
+"""Training entry point
 
 Author: Yuanbo Hou
 Email: Yuanbo.Hou@eng.ox.ac.uk
@@ -10,11 +10,13 @@ from copy import deepcopy
 from pathlib import Path
 
 import torch
+import wandb
 from torch.optim import AdamW
 
 from framework.config import config_signature, feature_signature_payload, load_config, run_context_payload
 from framework.dataset import MosquitoFeatureDataset, pad_collate_fn
 from framework.engine import evaluate_model, train_one_epoch
+from framework.git import get_commit_hash
 from framework.metadata import DOMAIN_NAMES, SPECIES_NAMES
 from framework.utilization import (
     acquire_experiment_lock,
@@ -78,6 +80,7 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
     config = deepcopy(config)
     config["experiment_name"] = experiment_name_for_seed(config["seed"], config)
     set_seed(config["seed"])
+    commit_hash = get_commit_hash()
     device = choose_device(config["device"])
     output_dir = make_output_dir(config["output_root"], config["experiment_name"])
     model_dir = output_dir / "model"
@@ -147,6 +150,12 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
             "final_checkpoint_path": str(final_checkpoint_path),
         }
     print(f"training model to {output_dir}")
+    wandb.init(
+        entity="biodcase-2026-cd-msc",
+        project="BioDCASE_Task5",
+        name=f"{config['experiment_name']}_commit_{commit_hash}",
+        config=config,
+    )
     try:
         save_json(run_context_path, current_run_context)
         save_json(output_dir / "resolved_config.json", config)
@@ -192,6 +201,7 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
         best_val_metrics = {}
         last_val_metrics = {}
         epochs_without_improvement = 0
+        epoch = 0
         for epoch in range(1, config["epochs"] + 1):
             train_metrics = train_one_epoch(
                 model=model,
@@ -226,6 +236,7 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
             }
             append_metrics(output_dir / "metrics.csv", row)
             logger.info(row)
+            wandb.log(row)
 
             current_score = val_metrics["species_balanced_accuracy"]
             if current_score > best_score:
@@ -274,6 +285,7 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
         logger.info("Evaluating final checkpoint outputs.")
         final_eval = evaluate_and_save_outputs(config, final_checkpoint_path, output_dir, "final_model_eval")
 
+        wandb.finish()
         return {
             "status": "completed",
             "output_dir": str(output_dir),

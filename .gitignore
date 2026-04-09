@@ -1,5 +1,6 @@
 # Project specific ignores
 Development_data
+.idea
 
 # --- Standard python ignores ----
 # taken from https://raw.githubusercontent.com/github/gitignore/refs/heads/main/Python.gitignore
