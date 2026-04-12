@@ -104,7 +104,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate reproducible report assets from saved outputs.")
     parser.add_argument("--config", type=str, default="configs/default_experiment.json")
     parser.add_argument("--outputs-root", type=str, default="outputs")
-    parser.add_argument("--feature-root", type=str, default="Development_data/feature")
+    parser.add_argument("--feature-root", type=str, default="data/feature")
     parser.add_argument("--out-dir", type=str, default="./technical_report_assets")
     return parser.parse_args()
 

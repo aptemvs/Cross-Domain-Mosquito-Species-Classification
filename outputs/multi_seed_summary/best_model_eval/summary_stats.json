@@ -1,37 +1,37 @@
 [
   {
     "metric": "loss",
-    "validation": "0.261275 +- 0.019419",
-    "test": "1.625349 +- 0.121943"
+    "validation": "0.260404 +- 0.016952",
+    "test": "1.609095 +- 0.116010"
   },
   {
     "metric": "species_accuracy",
-    "validation": "0.904649 +- 0.007520",
-    "test": "0.782688 +- 0.006524"
+    "validation": "0.904758 +- 0.006472",
+    "test": "0.781618 +- 0.006239"
   },
   {
     "metric": "species_balanced_accuracy",
-    "validation": "0.852525 +- 0.009247",
-    "test": "0.548866 +- 0.003982"
+    "validation": "0.848307 +- 0.010296",
+    "test": "0.538980 +- 0.017276"
   },
   {
     "metric": "domain_accuracy",
-    "validation": "0.999181 +- 0.000077",
-    "test": "0.924007 +- 0.026146"
+    "validation": "0.999046 +- 0.000171",
+    "test": "0.928063 +- 0.016078"
   },
   {
     "metric": "BA_seen",
     "validation": "n/a",
-    "test": "0.879283 +- 0.010147"
+    "test": "0.883519 +- 0.008037"
   },
   {
     "metric": "BA_unseen",
     "validation": "n/a",
-    "test": "0.185414 +- 0.013971"
+    "test": "0.172053 +- 0.016144"
   },
   {
     "metric": "DSG",
     "validation": "n/a",
-    "test": "0.693869 +- 0.018579"
+    "test": "0.711466 +- 0.019619"
   }
 ]

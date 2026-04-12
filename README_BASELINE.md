@@ -19,8 +19,8 @@ This repository contains the released baseline for the [BioDCASE 2026 Cross-Doma
 | `plot_official_main_figure.py` | Plot the paper-style per-species official figure |
 | `configs/` | Single-run and multi-seed configs |
 | `framework/` | Data loading, feature extraction, model, training, and utility code |
-| `Development_data/metadata/` | Recommended split files and split summary |
-| `Development_data/feature/` | Precomputed split features and training feature statistics |
+| `data/metadata/` | Recommended split files and split summary |
+| `data/feature/` | Precomputed split features and training feature statistics |
 | `outputs/` | Released checkpoints, logs, per-run metrics, and multi-seed summaries |
 | `technical_report_assets_current_split/` | Report-ready tables and figures for the current split |
 
@@ -32,18 +32,18 @@ This repository contains the released baseline for the [BioDCASE 2026 Cross-Doma
 pip install -r requirements.txt
 ```
 
-2. Download the development dataset from the [Zenodo Development dataset](https://zenodo.org/records/19095788) and place it under this repository as `Development_data/`.
+2. Download the development dataset from the [Zenodo Development dataset](https://zenodo.org/records/19095788) and place it under this repository as `data/`.
 
 3. Extract features:
 
 ```bash
-python extract_features.py --config configs/default_experiment.json
+uv run extract_features.py --config configs/default_experiment.json
 ```
 
 This creates:
 
 ```text
-Development_data/feature/
+data/feature/
 ├── training_features.pkl
 ├── validation_features.pkl
 ├── test_features.pkl
@@ -53,13 +53,13 @@ Development_data/feature/
 4. Train one run:
 
 ```bash
-python train.py --config configs/default_experiment.json
+uv run train.py --config configs/default_experiment.json
 ```
 
 5. Evaluate a checkpoint:
 
 ```bash
-python evaluate.py \
+uv run evaluate.py \
   --config configs/default_experiment.json \
   --checkpoint outputs/MTRCNN_seed42_B64_E100_earlystop_min10_pati5/model/model_best.pth \
   --split test \
@@ -70,16 +70,16 @@ python evaluate.py \
 6. Predict one file:
 
 ```bash
-python predict.py \
+uv run predict.py \
   --config configs/default_experiment.json \
   --checkpoint outputs/MTRCNN_seed42_B64_E100_earlystop_min10_pati5/model/model_best.pth \
-  --audio Development_data/raw_audio/S_1_D_5_16608.wav
+  --audio data/raw_audio/S_1_D_5_16608.wav
 ```
 
 7. Run the released 10-seed benchmark:
 
 ```bash
-python run_multi_seed_experiments.py --config configs/multi_seed_experiment.json
+uv run run_multi_seed_experiments.py --config configs/multi_seed_experiment.json
 ```
 
 ## Data And Split
@@ -87,11 +87,11 @@ python run_multi_seed_experiments.py --config configs/multi_seed_experiment.json
 - The code uses audio IDs in the form `S_<speciesID>_D_<domainID>_<clipIndex>`.
 - The released development setup covers 9 species and 5 domains (`D1` to `D5`).
 - Recommended split files:
-  - `Development_data/metadata/Training_ids.txt`
-  - `Development_data/metadata/Validation_ids.txt`
-  - `Development_data/metadata/Test_ids.txt`
-  - `Development_data/metadata/TrainVal_ids.txt`
-  - `Development_data/metadata/split_summary.json`
+  - `data/metadata/Training_ids.txt`
+  - `data/metadata/Validation_ids.txt`
+  - `data/metadata/Test_ids.txt`
+  - `data/metadata/TrainVal_ids.txt`
+  - `data/metadata/split_summary.json`
 
 #### Dataset overview
 

@@ -1,4 +1,0 @@
-split,num_clips,mean_frames,median_frames,mode_frames,mode_count,min_frames,max_frames,mean_seconds,median_seconds,mode_seconds,min_seconds,max_seconds,iterations_at_batch_64
-training,213647,66.891,63.0,63,212339,4,29390,0.669,0.63,0.63,0.04,293.9,3339
-validation,30516,65.083,63.0,63,30334,9,6461,0.651,0.63,0.63,0.09,64.61,477
-test,27217,204.347,63.0,63,22983,8,15239,2.043,0.63,0.63,0.08,152.39,426
