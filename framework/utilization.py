@@ -137,6 +137,7 @@ def make_loader(dataset, batch_size: int, shuffle: bool, num_workers: int, devic
         num_workers=num_workers,
         collate_fn=collate_fn,
         pin_memory=device.type == "cuda",
+        persistent_workers=True
     )
 
 
