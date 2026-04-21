@@ -245,6 +245,12 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
                 "val_domain_balanced_accuracy": round(val_metrics["domain_balanced_accuracy"], 6),
                 "lr": optimizer.param_groups[0]["lr"],
             }
+            for domain_name in DOMAIN_NAMES:
+                val_species_ba = val_metrics.get(f"species_ba_{domain_name}")
+                row[f"val_species_ba_{domain_name}"] = (
+                    round(val_species_ba, 6) if val_species_ba is not None else None
+                )
+
             append_metrics(output_dir / "metrics.csv", row)
             logger.info(row)
             wandb.log(row)
