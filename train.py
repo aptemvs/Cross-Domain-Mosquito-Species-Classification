@@ -163,6 +163,7 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
     wandb.init(
         entity="biodcase-2026-cd-msc",
         project="BioDCASE_Task5",
+        group=f'"commit_{commit_hash}"',
         name=f"{config['experiment_name']}_commit_{commit_hash}",
         config=config,
     )
