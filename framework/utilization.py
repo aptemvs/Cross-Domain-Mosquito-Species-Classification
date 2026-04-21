@@ -19,6 +19,8 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
+from const import model_backend
+
 
 def set_seed(seed: int) -> None:
     random.seed(seed)
@@ -157,10 +159,24 @@ def max_train_frames(config: Dict) -> Optional[int]:
 
 def build_model(config: dict, device: torch.device):
     from framework.metadata import DOMAIN_NAMES, SPECIES_NAMES
-    from framework.model import MTRCNNClassifier
+    backend = config["model_backend"]
 
-    return MTRCNNClassifier(
-        config=config,
-        num_species_classes=len(SPECIES_NAMES),
-        num_domain_classes=len(DOMAIN_NAMES),
-    ).to(device)
+    match backend:
+        case model_backend.MODEL_BACKEND_MTRCNN:
+            from framework.model_baseline import MTRCNNClassifier
+
+            return MTRCNNClassifier(
+                config=config,
+                num_species_classes=len(SPECIES_NAMES),
+                num_domain_classes=len(DOMAIN_NAMES),
+            ).to(device)
+        case model_backend.MODEL_BACKEND_EFFICIENTAT:
+            from framework.model_efficientat import EfficientATClassifier
+
+            return EfficientATClassifier(
+                config=config,
+                num_species_classes=len(SPECIES_NAMES),
+                num_domain_classes=len(DOMAIN_NAMES),
+            ).to(device)
+        case _:
+            raise ValueError(f"Unknown model backend {backend!r}")

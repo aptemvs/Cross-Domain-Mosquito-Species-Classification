@@ -13,6 +13,7 @@ import torch
 import wandb
 from torch.optim import AdamW
 
+from const import model_backend
 from framework.config import config_signature, feature_signature_payload, load_config, run_context_payload
 from framework.dataset import MosquitoFeatureDataset, pad_collate_fn
 from framework.engine import evaluate_model, train_one_epoch
@@ -35,7 +36,6 @@ from framework.utilization import (
     release_experiment_lock,
 )
 
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train mosquito classifier.")
     parser.add_argument("--config", type=str, default="configs/default_experiment.json")
@@ -46,9 +46,19 @@ def parse_args() -> argparse.Namespace:
 def experiment_name_for_seed(seed: int, config: dict) -> str:
     batch_size = int(config["batch_size"])
     epochs = int(config["epochs"])
-    min_epoch = int(config.get("early_stopping_min_epoch", 10))
-    patience = int(config.get("early_stopping_patience", 10))
-    return f"MTRCNN_seed{seed}_B{batch_size}_E{epochs}_earlystop_min{min_epoch}_pati{patience}"
+    min_epoch = int(config["early_stopping_min_epoch"])
+    patience = int(config["early_stopping_patience"])
+    backend = str(config["model_backend"])
+
+    match backend:
+        case model_backend.MODEL_BACKEND_MTRCNN:
+            model = "MTRCNN"
+        case model_backend.MODEL_BACKEND_EFFICIENTAT:
+            model = str(config["efficientat_pretrained_name"])
+        case _:
+            raise ValueError(f"Unknown model backend {backend!r}")
+
+    return f"{model}_seed{seed}_B{batch_size}_E{epochs}_earlystop_min{min_epoch}_pati{patience}"
 
 
 def evaluate_and_save_outputs(config: dict, checkpoint_path: Path, output_dir: Path, model_name: str) -> dict:
@@ -188,13 +198,13 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
             print(f"loading from {training_stats_path(config)}")
 
         train_loader = make_loader(train_dataset, config["batch_size"], True, config["num_workers"], device, pad_collate_fn)
-        eval_batch_size = config.get("eval_batch_size", config["batch_size"])
+        eval_batch_size = int(config["eval_batch_size"])
         val_loader = make_loader(val_dataset, eval_batch_size, False, config["num_workers"], device, pad_collate_fn)
 
         model = build_model(config, device)
         optimizer = AdamW(model.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"])
-        early_stopping_min_epoch = int(config.get("early_stopping_min_epoch", 10))
-        early_stopping_patience = int(config.get("early_stopping_patience", 10))
+        early_stopping_min_epoch = int(config["early_stopping_min_epoch"])
+        early_stopping_patience = int(config["early_stopping_patience"])
 
         best_score = float("-inf")
         best_epoch = 0
