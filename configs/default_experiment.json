@@ -29,5 +29,5 @@
   "efficientat_width_mult": 0.4,
   "efficientat_input_dim_t": 200,
   "efficientat_embedding_dim": 128,
-  "efficientat_freeze": true
+  "efficientat_freeze": false
 }
