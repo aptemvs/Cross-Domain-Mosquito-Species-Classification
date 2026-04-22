@@ -160,14 +160,15 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
             "final_checkpoint_path": str(final_checkpoint_path),
         }
     print(f"training model to {output_dir}")
-    wandb.init(
-        entity="biodcase-2026-cd-msc",
-        project="BioDCASE_Task5",
-        group=f'"commit_{commit_hash}"',
-        name=f"{config['experiment_name']}_commit_{commit_hash}",
-        config=config,
-    )
+    logger = None
     try:
+        wandb.init(
+            entity="biodcase-2026-cd-msc",
+            project="BioDCASE_Task5",
+            group=f'"commit_{commit_hash}"',
+            name=f"{config['experiment_name']}_commit_{commit_hash}",
+            config=config,
+        )
         save_json(run_context_path, current_run_context)
         save_json(output_dir / "resolved_config.json", config)
         logger = make_logger(output_dir / "train.log")
@@ -302,7 +303,6 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
         logger.info("Evaluating final checkpoint outputs.")
         final_eval = evaluate_and_save_outputs(config, final_checkpoint_path, output_dir, "final_model_eval")
 
-        wandb.finish()
         return {
             "status": "completed",
             "output_dir": str(output_dir),
@@ -312,6 +312,12 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
             "final_eval": final_eval,
         }
     finally:
+        if logger is not None:
+            for handler in list(logger.handlers):
+                handler.close()
+                logger.removeHandler(handler)
+        if wandb.run is not None:
+            wandb.finish()
         release_experiment_lock(lock_path)
 
 

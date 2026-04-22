@@ -45,7 +45,7 @@ def make_output_dir(output_root: str, experiment_name: str) -> Path:
     return output_dir
 
 
-def acquire_experiment_lock(output_dir: Path, experiment_name: str) -> Path:
+def acquire_experiment_lock(output_dir: Path, experiment_name: str) -> Optional[Path]:
     lock_path = output_dir / ".experiment.lock"
     payload = {
         "experiment_name": experiment_name,
@@ -70,7 +70,9 @@ def release_experiment_lock(lock_path: Optional[Path]) -> None:
 def make_logger(log_path: Path) -> logging.Logger:
     logger = logging.getLogger(str(log_path))
     logger.setLevel(logging.INFO)
-    logger.handlers.clear()
+    for handler in list(logger.handlers):
+        handler.close()
+        logger.removeHandler(handler)
     formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
 
     file_handler = logging.FileHandler(log_path, encoding="utf-8")

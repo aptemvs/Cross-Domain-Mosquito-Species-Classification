@@ -18,7 +18,7 @@
   "epochs": 100,
   "early_stopping_min_epoch": 10,
   "early_stopping_patience": 5,
-  "learning_rate": 0.001,
+  "learning_rate": 0.0003,
   "weight_decay": 0.0001,
   "dropout": 0.2,
   "device": "auto",
@@ -29,5 +29,5 @@
   "efficientat_width_mult": 0.4,
   "efficientat_input_dim_t": 200,
   "efficientat_embedding_dim": 128,
-  "efficientat_freeze": false
+  "efficientat_freeze": true
 }
