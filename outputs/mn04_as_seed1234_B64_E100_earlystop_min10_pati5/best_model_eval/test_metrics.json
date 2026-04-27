@@ -1,0 +1,22 @@
+{
+  "loss": 1.25847966998568,
+  "species_loss": 0.9110028193341084,
+  "domain_loss": 0.3474768527243043,
+  "species_accuracy": 0.7701069116592407,
+  "species_balanced_accuracy": 0.47722140285703873,
+  "domain_accuracy": 0.9151265621185303,
+  "domain_balanced_accuracy": 0.5792218625545502,
+  "species_ba_D1": 0.2610285782526868,
+  "species_ba_D3": 0.6589052379131317,
+  "species_ba_D4": 0.1351351346820593,
+  "species_ba_D5": 0.8729589482148489,
+  "species_ba_D2": 0.06047748774290085,
+  "num_prediction_rows": 27217,
+  "num_seen_samples": 23015,
+  "num_unseen_samples": 4202,
+  "BA_seen": 0.8721866110960642,
+  "BA_unseen": 0.13657176519174957,
+  "DSG": 0.7356148459043146,
+  "split": "test",
+  "checkpoint_path": "outputs/mn04_as_seed1234_B64_E100_earlystop_min10_pati5/model/model_best.pth"
+}

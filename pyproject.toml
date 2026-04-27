@@ -7,6 +7,7 @@ dependencies = [
     "matplotlib>=3.10.8",
     "numpy>=2.4.4",
     "torch>=2.11.0",
+    "torchvision>=0.20.0",
     "torchlibrosa>=0.1.0",
     "wandb>=0.25.1",
 ]
