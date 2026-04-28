@@ -1,0 +1,34 @@
+{
+  "seed": 42,
+
+  "dataset_root": "./data/raw_audio",
+  "train_ids_path": "./data/metadata/Training_ids.txt",
+  "val_ids_path": "./data/metadata/Validation_ids.txt",
+  "test_ids_path": "./data/metadata/Test_ids.txt",
+  "feature_root": "./data/feature",
+  "output_root": "./outputs",
+
+  "feature_extraction": {
+    "sample_rate": 8000,
+    "normalize_waveform": true,
+    "n_fft": 512,
+    "hop_length": 80,
+    "win_length": 512,
+    "mel": false
+  },
+
+  "batch_size": 64,
+  "eval_batch_size": 8,
+  "num_workers": 4,
+  "train_crop_seconds": 2.0,
+  "normalize_features": true,
+  "epochs": 100,
+  "early_stopping_min_epoch": 10,
+  "early_stopping_patience": 5,
+  "learning_rate": 0.001,
+  "weight_decay": 0.0001,
+  "dropout": 0.2,
+  "device": "auto",
+
+  "model_backend": "MTRCNN"
+}
