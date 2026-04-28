@@ -48,7 +48,7 @@ def main() -> None:
     args = parse_args()
     config = load_config(args.config)
     device = choose_device(config["device"])
-    extractor = build_feature_extractor(config, device)
+    extractor = build_feature_extractor(config["feature_extraction"], device)
     feature_root = Path(config["feature_root"])
 
     split_jobs = [

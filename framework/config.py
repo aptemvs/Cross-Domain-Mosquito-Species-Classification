@@ -14,33 +14,14 @@ from typing import Dict, List, Union
 
 FEATURE_CONFIG_KEYS = [
     "dataset_root",
-    "sample_rate",
-    "normalize_waveform",
-    "n_fft",
-    "hop_length",
-    "win_length",
-    "n_mels",
-    "fmin",
-    "fmax",
+    "feature_extraction",
 ]
 
 
 def load_config(path: Union[str, Path]) -> Dict:
     with open(path, "r", encoding="utf-8") as handle:
         config = json.load(handle)
-    return resolve_config(config)
-
-
-def resolve_config(config: Dict) -> Dict:
-    config = dict(config)
-    sample_rate = config["sample_rate"]
-    config["n_mels"] = 64
-    config["fmin"] = 0
-    config["fmax"] = int(sample_rate / 2)
-    config["win_length"] = max(1, int(math.floor(1024 * (sample_rate / 16000))))
-    config["hop_length"] = max(1, int(math.floor(160 * (sample_rate / 16000))))
-    config["n_fft"] = config["win_length"]
-    return config
+    return dict(config)
 
 
 def config_subset(config: Dict, keys: List[str]) -> Dict:
