@@ -156,7 +156,7 @@ def training_stats_path(config: dict) -> Path:
 def max_train_frames(config: Dict) -> Optional[int]:
     if not config.get("train_crop_seconds"):
         return None
-    return max(1, int(round(config["train_crop_seconds"] * config["sample_rate"] / config["hop_length"])))
+    return max(1, int(round(config["train_crop_seconds"] * config["feature_extraction"]["sample_rate"] / config["feature_extraction"]["hop_length"])))
 
 
 def build_model(config: dict, device: torch.device):

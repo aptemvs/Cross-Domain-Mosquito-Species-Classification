@@ -30,7 +30,7 @@ class EfficientATClassifier(nn.Module):
 
     def _infer_efficientat_feature_dim(self, config) -> int:
         with torch.no_grad():
-            dummy = torch.zeros(1, 1, int(config["n_mels"]), config["efficientat_input_dim_t"])
+            dummy = torch.zeros(1, 1, int(config["feature_extraction"]["n_mels"]), config["efficientat_input_dim_t"])
             _, features = self.backbone(dummy)
 
         feature_dim = int(features.shape[1])
@@ -94,6 +94,6 @@ def _get_backbone(config) -> nn.Module:
             # for pretrained models. some have to match.
             pretrained_name=str(config["efficientat_pretrained_name"]),
             width_mult=float(config["efficientat_width_mult"]),
-            input_dim_f=int(config["n_mels"]),
+            input_dim_f=int(config["feature_extraction"]["n_mels"]),
             input_dim_t=config["efficientat_input_dim_t"],
         )
