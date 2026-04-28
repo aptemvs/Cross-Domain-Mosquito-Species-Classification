@@ -167,8 +167,10 @@ def build_model(config: dict, device: torch.device):
         case model_backend.MODEL_BACKEND_MTRCNN:
             from framework.model_baseline import MTRCNNClassifier
 
+            feature_dim = config["feature_extraction"]["n_mels"] if config["feature_extraction"]["mel"] else config["feature_extraction"]["n_fft"] // 2 + 1
             return MTRCNNClassifier(
                 config=config,
+                feature_dim=feature_dim,
                 num_species_classes=len(SPECIES_NAMES),
                 num_domain_classes=len(DOMAIN_NAMES),
             ).to(device)

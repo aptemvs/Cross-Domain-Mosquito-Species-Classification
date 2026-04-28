@@ -108,9 +108,9 @@ def masked_mean_max(x: torch.Tensor, lengths: torch.Tensor) -> torch.Tensor:
 
 
 class MTRCNNClassifier(nn.Module):
-    def __init__(self, config, num_species_classes: int, num_domain_classes: int) -> None:
+    def __init__(self, config, feature_dim: int, num_species_classes: int, num_domain_classes: int) -> None:
         super().__init__()
-        self.input_bn = nn.BatchNorm2d(config["n_mels"])
+        self.input_bn = nn.BatchNorm2d(feature_dim)
 
         self.kernel_3_branch = MTRCNNBranch(
             stage_specs=[
@@ -119,7 +119,7 @@ class MTRCNNClassifier(nn.Module):
                 ((3, 3), (3, 1), (3, 0)),
             ],
             dropout=config["dropout"],
-            n_mels=config["n_mels"],
+            n_mels=feature_dim,
         )
         self.kernel_5_branch = MTRCNNBranch(
             stage_specs=[
@@ -128,7 +128,7 @@ class MTRCNNClassifier(nn.Module):
                 ((5, 5), (3, 1), (6, 1)),
             ],
             dropout=config["dropout"],
-            n_mels=config["n_mels"],
+            n_mels=feature_dim,
         )
         self.kernel_7_branch = MTRCNNBranch(
             stage_specs=[
@@ -137,7 +137,7 @@ class MTRCNNClassifier(nn.Module):
                 ((7, 7), (3, 1), (9, 2)),
             ],
             dropout=config["dropout"],
-            n_mels=config["n_mels"],
+            n_mels=feature_dim,
         )
 
         self.embedding = nn.Linear(64 * 3, 32)
