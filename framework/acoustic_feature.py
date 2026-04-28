@@ -9,18 +9,49 @@ import json
 import pickle
 from pathlib import Path
 from typing import Dict, Union
+from abc import ABC, abstractmethod
 
 import librosa
 import numpy as np
 import torch
 import torch.nn as nn
 from torchlibrosa.stft import LogmelFilterBank, Spectrogram
+import torchaudio
 
 from framework.config import config_signature, feature_signature_payload
 from framework.metadata import DOMAIN_TO_INDEX, SPECIES_TO_INDEX, load_id_list, parse_file_id
 
 
-class LogMelSpectrogram(nn.Module):
+class FeatureExtractor(ABC, nn.Module):
+    @abstractmethod
+    def forward(self, waveforms: torch.Tensor) -> torch.Tensor:
+        pass
+
+class LogSpectrogram(FeatureExtractor):
+    def __init__(
+        self,
+        n_fft: int,
+        hop_length: int,
+        win_length: int,
+    ) -> None:
+        super().__init__()
+        self.spectrogram_extractor = Spectrogram(
+            n_fft=n_fft,
+            hop_length=hop_length,
+            win_length=win_length,
+            window="hann",
+            center=True,
+            pad_mode="reflect",
+            freeze_parameters=True,
+        )
+       
+        self.db_transform = torchaudio.transforms.AmplitudeToDB(stype="amplitude")
+
+    def forward(self, waveforms: torch.Tensor) -> torch.Tensor:
+        spectrogram = self.spectrogram_extractor(waveforms)
+        return self.db_transform(spectrogram.abs()).squeeze(1)
+
+class LogMelSpectrogram(FeatureExtractor):
     def __init__(
         self,
         sample_rate: int,
@@ -32,7 +63,6 @@ class LogMelSpectrogram(nn.Module):
         fmax: int,
     ) -> None:
         super().__init__()
-        self.hop_length = hop_length
         self.spectrogram_extractor = Spectrogram(
             n_fft=n_fft,
             hop_length=hop_length,
@@ -69,9 +99,9 @@ def load_waveform(path: Union[str, Path], sample_rate: int, normalize_waveform: 
     return waveform.astype(np.float32)
 
 
-def extract_log_mel_feature(
+def extract_feature(
     audio_path: Union[str, Path],
-    extractor: LogMelSpectrogram,
+    extractor: FeatureExtractor,
     sample_rate: int,
     normalize_waveform: bool,
     device: torch.device,
@@ -94,7 +124,7 @@ def feature_stats_path(feature_root: Union[str, Path]) -> Path:
 def extract_split_features(
     config: Dict,
     split_name: str,
-    extractor: LogMelSpectrogram,
+    extractor: FeatureExtractor,
     device: torch.device,
 ) -> Path:
     feature_root = Path(config["feature_root"])
@@ -107,11 +137,11 @@ def extract_split_features(
     for index, file_id in enumerate(file_ids, start=1):
         species, domain = parse_file_id(file_id)
         audio_path = Path(config["dataset_root"]) / f"{file_id}.wav"
-        feature = extract_log_mel_feature(
+        feature = extract_feature(
             audio_path,
             extractor,
-            config["sample_rate"],
-            config["normalize_waveform"],
+            config["feature_extraction"]["sample_rate"],
+            config["feature_extraction"]["normalize_waveform"],
             device,
         )
         print(

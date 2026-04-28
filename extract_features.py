@@ -11,7 +11,9 @@ from pathlib import Path
 import torch
 
 from framework.acoustic_feature import (
+    FeatureExtractor,
     LogMelSpectrogram,
+    LogSpectrogram,
     compute_training_feature_stats,
     extract_split_features,
     feature_stats_path,
@@ -30,16 +32,25 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def build_feature_extractor(config: dict, device: torch.device) -> LogMelSpectrogram:
-    extractor = LogMelSpectrogram(
-        sample_rate=config["sample_rate"],
-        n_fft=config["n_fft"],
-        hop_length=config["hop_length"],
-        win_length=config["win_length"],
-        n_mels=config["n_mels"],
-        fmin=config["fmin"],
-        fmax=config["fmax"],
-    ).to(device)
+def build_feature_extractor(config: dict, device: torch.device) -> FeatureExtractor:
+    if config["mel"]:
+        extractor = LogMelSpectrogram(
+            sample_rate=config["sample_rate"],
+            n_fft=config["n_fft"],
+            hop_length=config["hop_length"],
+            win_length=config["win_length"],
+            n_mels=config["n_mels"],
+            fmin=config["fmin"],
+            fmax=config["fmax"],
+        ).to(device)
+    else:
+        extractor = LogSpectrogram(
+            n_fft=config["n_fft"],
+            hop_length=config["hop_length"],
+            win_length=config["win_length"],
+        )
+
+    extractor = extractor.to(device)
     extractor.eval()
     return extractor
 

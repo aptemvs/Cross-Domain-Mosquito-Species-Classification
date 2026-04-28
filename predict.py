@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from framework.acoustic_feature import LogMelSpectrogram, extract_log_mel_feature
+from framework.acoustic_feature import LogMelSpectrogram, extract_feature
 from framework.config import config_signature, feature_signature_payload, load_config
 from framework.dataset import load_feature_stats, validate_feature_stats_payload
 from framework.metadata import SPECIES_NAMES
@@ -54,7 +54,7 @@ def main() -> None:
     device = choose_device(config["device"])
 
     extractor = build_feature_extractor(config, device)
-    feature = extract_log_mel_feature(
+    feature = extract_feature(
         audio_path=Path(args.audio),
         extractor=extractor,
         sample_rate=config["sample_rate"],
