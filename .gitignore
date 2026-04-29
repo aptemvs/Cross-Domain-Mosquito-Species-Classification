@@ -265,3 +265,7 @@ Temporary Items
 
 
 tmp
+
+# pixi environments
+.pixi/*
+!.pixi/config.toml
