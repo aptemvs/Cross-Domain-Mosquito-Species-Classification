@@ -1,0 +1,25 @@
+services:
+  devcontainer:
+    build: .
+    stdin_open: true             
+    tty: true                    
+    network_mode: host           
+    devices:
+      - /dev/kfd                 
+      - /dev/dri                 
+    group_add:
+      - video                    
+    ipc: host                    
+    cap_add:
+      - SYS_PTRACE               
+    security_opt:
+      - seccomp=unconfined       
+    shm_size: 8G                 
+    volumes:
+      - ../../../:/workspaces:cached
+      - ../../.devcontainer-cache:/home/vscode/.cache
+    environment:
+      MIOPEN_USER_DB_PATH: "/home/vscode/.cache/miopen-user-findb/"
+      PYTORCH_TUNABLEOP_ENABLED: 1
+      PIXI_HOME: "/home/vscode/.cache/.pixi"
+      PIXI_CACHE_DIR: "/home/vscode/.cache/.pixi-cache"

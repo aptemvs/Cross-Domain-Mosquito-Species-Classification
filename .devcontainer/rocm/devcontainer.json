@@ -1,0 +1,7 @@
+{
+  "name": "ROCm",
+  "dockerComposeFile": "compose.yml",
+  "service": "devcontainer",
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}"
+}
