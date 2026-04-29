@@ -1,5 +1,5 @@
 {
-	"name": "ROCm",
+  "name": "ROCm",
   "dockerComposeFile": "compose.yml",
   "service": "devcontainer",
   "remoteUser": "vscode",
