@@ -8,7 +8,6 @@ Affiliation: Machine Learning Research Group, University of Oxford
 import json
 import pickle
 from pathlib import Path
-from typing import Dict, Union
 
 import librosa
 import numpy as np
@@ -60,7 +59,7 @@ class LogMelSpectrogram(nn.Module):
         return logmel.squeeze(1)
 
 
-def load_waveform(path: Union[str, Path], sample_rate: int, normalize_waveform: bool) -> np.ndarray:
+def load_waveform(path: str | Path, sample_rate: int, normalize_waveform: bool) -> np.ndarray:
     waveform, _ = librosa.load(Path(path), sr=sample_rate, mono=True)
     if normalize_waveform and waveform.size:
         peak = np.abs(waveform).max()
@@ -70,7 +69,7 @@ def load_waveform(path: Union[str, Path], sample_rate: int, normalize_waveform: 
 
 
 def extract_log_mel_feature(
-    audio_path: Union[str, Path],
+    audio_path: str | Path,
     extractor: LogMelSpectrogram,
     sample_rate: int,
     normalize_waveform: bool,
@@ -83,11 +82,11 @@ def extract_log_mel_feature(
     return feature
 
 
-def split_feature_path(feature_root: Union[str, Path], split_name: str) -> Path:
+def split_feature_path(feature_root: str | Path, split_name: str) -> Path:
     return Path(feature_root) / f"{split_name.lower()}_features.pkl"
 
 
-def feature_stats_path(feature_root: Union[str, Path]) -> Path:
+def feature_stats_path(feature_root: str | Path) -> Path:
     return Path(feature_root) / "training_feature_stats.json"
 
 
@@ -145,7 +144,7 @@ def extract_split_features(
     return output_path
 
 
-def compute_training_feature_stats(feature_pickle_path: Union[str, Path]) -> Dict:
+def compute_training_feature_stats(feature_pickle_path: str | Path) -> dict:
     with open(feature_pickle_path, "rb") as handle:
         payload = pickle.load(handle)
 
@@ -175,7 +174,7 @@ def compute_training_feature_stats(feature_pickle_path: Union[str, Path]) -> Dic
     }
 
 
-def save_feature_stats(stats: Dict, feature_root: Union[str, Path]) -> Path:
+def save_feature_stats(stats: dict, feature_root: str | Path) -> Path:
     output_path = feature_stats_path(feature_root)
     with open(output_path, "w", encoding="utf-8") as handle:
         json.dump(stats, handle, indent=2)
