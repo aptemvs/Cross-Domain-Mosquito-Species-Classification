@@ -17,6 +17,7 @@ from torchlibrosa.stft import LogmelFilterBank, Spectrogram
 
 from framework.config import config_signature, feature_signature_payload
 from framework.metadata import DOMAIN_TO_INDEX, SPECIES_TO_INDEX, load_id_list, parse_file_id
+from model.experiment_config import ExperimentConfig
 
 
 class LogMelSpectrogram(nn.Module):
@@ -91,26 +92,27 @@ def feature_stats_path(feature_root: str | Path) -> Path:
 
 
 def extract_split_features(
-    config: Dict,
+    config: ExperimentConfig,
     split_name: str,
     extractor: LogMelSpectrogram,
     device: torch.device,
 ) -> Path:
-    feature_root = Path(config["feature_root"])
+    feature_root = config.feature_root
     feature_root.mkdir(parents=True, exist_ok=True)
     records = []
-    ids_path = config[{"training": "train_ids_path", "validation": "val_ids_path", "test": "test_ids_path"}[split_name]]
+    ids_key = {"training": "train_ids_path", "validation": "val_ids_path", "test": "test_ids_path"}[split_name]
+    ids_path = getattr(config.feature_extraction, ids_key)
     file_ids = load_id_list(ids_path)
     total_items = len(file_ids)
 
     for index, file_id in enumerate(file_ids, start=1):
         species, domain = parse_file_id(file_id)
-        audio_path = Path(config["dataset_root"]) / f"{file_id}.wav"
+        audio_path = config.feature_extraction.dataset_root / f"{file_id}.wav"
         feature = extract_log_mel_feature(
             audio_path,
             extractor,
-            config["sample_rate"],
-            config["normalize_waveform"],
+            config.feature_extraction.sample_rate,
+            config.feature_extraction.normalize_waveform,
             device,
         )
         print(
