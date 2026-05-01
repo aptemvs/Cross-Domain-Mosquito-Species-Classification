@@ -1,12 +1,14 @@
 from pathlib import Path
+from typing import Literal, Annotated
 
-from pydantic import BaseModel, PositiveInt, PositiveFloat
+from pydantic import BaseModel, PositiveInt, PositiveFloat, Field, TypeAdapter
 
 from const.model_backend import ModelBackend
 from model.feature_extraction_config import FeatureExtractionConfig
+from model.effecientat_config import EfficientATConfig
 
 
-class ExperimentConfig(BaseModel):
+class _ExperimentBaseConfig(BaseModel):
     seed: int
 
     feature_root: Path
@@ -28,4 +30,19 @@ class ExperimentConfig(BaseModel):
 
     device: str
 
-    model_backend: ModelBackend
+
+class _MTRCNNExperimentConfig(_ExperimentBaseConfig):
+    model_backend: Literal[ModelBackend.MTRCNN]
+
+
+class _EfficientATExperimentConfig(_ExperimentBaseConfig):
+    model_backend: Literal[ModelBackend.EFFICIENTAT]
+    efficientat: EfficientATConfig
+
+
+ExperimentConfig = TypeAdapter(
+    Annotated[
+        _MTRCNNExperimentConfig | _EfficientATExperimentConfig,
+        Field(discriminator="model_backend"),
+    ]
+)
