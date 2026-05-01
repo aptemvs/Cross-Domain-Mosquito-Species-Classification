@@ -1,2 +1,6 @@
-MODEL_BACKEND_EFFICIENTAT = "EfficientAT"
-MODEL_BACKEND_MTRCNN = "MTRCNN"
+from enum import Enum
+
+
+class ModelBackend(Enum):
+    EFFICIENTAT = "EfficientAT"
+    MTRCNN = "MTRCNN"
