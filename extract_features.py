@@ -6,7 +6,6 @@ Affiliation: Machine Learning Research Group, University of Oxford
 """
 
 import argparse
-from pathlib import Path
 
 import torch
 
@@ -21,7 +20,7 @@ from framework.acoustic_feature import (
 from framework.config import config_signature, feature_signature_payload, load_config
 from framework.dataset import load_feature_payload
 from framework.utilization import choose_device, load_json
-
+from model.experiment_config import FeatureExtractionConfig
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Extract log-mel features for all splits.")
@@ -30,15 +29,15 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def build_feature_extractor(config: dict, device: torch.device) -> LogMelSpectrogram:
+def build_feature_extractor(config: FeatureExtractionConfig, device: torch.device) -> LogMelSpectrogram:
     extractor = LogMelSpectrogram(
-        sample_rate=config["sample_rate"],
-        n_fft=config["n_fft"],
-        hop_length=config["hop_length"],
-        win_length=config["win_length"],
-        n_mels=config["n_mels"],
-        fmin=config["fmin"],
-        fmax=config["fmax"],
+        sample_rate=config.sample_rate,
+        n_fft=config.n_fft,
+        hop_length=config.hop_length,
+        win_length=config.win_length,
+        n_mels=config.n_mels,
+        fmin=config.f_min,
+        fmax=config.f_max,
     ).to(device)
     extractor.eval()
     return extractor
@@ -47,9 +46,9 @@ def build_feature_extractor(config: dict, device: torch.device) -> LogMelSpectro
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
-    device = choose_device(config["device"])
-    extractor = build_feature_extractor(config, device)
-    feature_root = Path(config["feature_root"])
+    device = choose_device(config.device)
+    extractor = build_feature_extractor(config.feature_extraction, device)
+    feature_root = config.feature_root
 
     split_jobs = [
         "training",
