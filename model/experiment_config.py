@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Literal, Annotated
 
-from pydantic import BaseModel, PositiveInt, PositiveFloat, Field, TypeAdapter
+from pydantic import BaseModel, PositiveInt, PositiveFloat, Field
 
 from const.model_backend import ModelBackend
 from model.feature_extraction_config import FeatureExtractionConfig
@@ -41,9 +41,7 @@ class _EfficientATExperimentConfig(_ExperimentBaseConfig):
     efficientat: EfficientATConfig
 
 
-ExperimentConfig = TypeAdapter(
-    Annotated[
-        _MTRCNNExperimentConfig | _EfficientATExperimentConfig,
-        Field(discriminator="model_backend"),
-    ]
-)
+type ExperimentConfig = Annotated[
+    _MTRCNNExperimentConfig | _EfficientATExperimentConfig,
+    Field(discriminator="model_backend"),
+]
