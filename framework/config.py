@@ -17,7 +17,7 @@ def load_config(path: str | Path) -> ExperimentConfig:
         path = Path(path)
 
     assert path.exists(), f"config path {path} does not exist"
-    assert path.is_fifo(), "config path must point to a file"
+    assert path.is_file(), "config path must point to a file"
 
     json_config = path.read_text()
     return TypeAdapter(ExperimentConfig).validate_json(json_config)
