@@ -17,6 +17,9 @@ from framework.dataset import MosquitoFeatureDataset, pad_collate_fn
 from framework.engine import balanced_accuracy, evaluate_model
 from framework.metadata import DOMAIN_NAMES, SPECIES_NAMES
 from framework.utilization import build_model, choose_device, make_loader, split_feature_path, training_stats_path
+from schema.trial_config import TrialConfig
+from schema.experiment_config import ExperimentConfig
+from utils.generate_trials import generate_trials
 
 
 def parse_args() -> argparse.Namespace:
@@ -35,11 +38,11 @@ def save_prediction_rows(path: str | Path, rows) -> None:
             handle.write(json.dumps(row) + "\n")
 
 
-def split_summary_path(config: dict) -> Path:
-    return Path(config["train_ids_path"]).parent / "split_summary.json"
+def split_summary_path(config: ExperimentConfig) -> Path:
+    return config.feature_extraction.train_ids_path.parent / "split_summary.json"
 
 
-def load_unseen_domain_by_species(config: dict) -> dict[str, str]:
+def load_unseen_domain_by_species(config: ExperimentConfig) -> dict[str, str]:
     path = split_summary_path(config)
     if not path.exists():
         return {}
@@ -89,12 +92,12 @@ def append_official_metrics(metrics: dict, prediction_rows: list[dict], unseen_d
     }
 
 
-def evaluate_checkpoint(config: dict, checkpoint_path: str | Path, split: str, return_predictions: bool = True) -> dict:
+def evaluate_checkpoint(config: TrialConfig, checkpoint_path: str | Path, split: str, return_predictions: bool = True) -> dict:
     config = deepcopy(config)
-    device = choose_device(config["device"])
+    device = choose_device(config.device)
     print(f"loading from {checkpoint_path}")
     print(f"loading from {split_feature_path(config, split)}")
-    if config["normalize_features"]:
+    if config.normalize_features:
         print(f"loading from {training_stats_path(config)}")
     expected_feature_signature = config_signature(feature_signature_payload(config, split))
     expected_training_stats_signature = config_signature(feature_signature_payload(config, "training"))
@@ -103,12 +106,12 @@ def evaluate_checkpoint(config: dict, checkpoint_path: str | Path, split: str, r
         feature_stats_path=training_stats_path(config),
         max_train_frames=None,
         training=False,
-        normalize_features=config["normalize_features"],
+        normalize_features=config.normalize_features,
         expected_feature_signature=expected_feature_signature,
         expected_stats_signature=expected_training_stats_signature,
     )
-    eval_batch_size = config.get("eval_batch_size", config["batch_size"])
-    dataloader = make_loader(dataset, eval_batch_size, False, config["num_workers"], device, pad_collate_fn)
+    eval_batch_size = config.eval_batch_size
+    dataloader = make_loader(dataset, eval_batch_size, False, config.num_workers, device, pad_collate_fn)
 
     model = build_model(config, device)
     checkpoint = torch.load(checkpoint_path, map_location=device)
@@ -146,7 +149,14 @@ def evaluate_checkpoint(config: dict, checkpoint_path: str | Path, split: str, r
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
-    result = evaluate_checkpoint(config, args.checkpoint, args.split, return_predictions=True)
+
+    trials = list(generate_trials(config))
+    if len(trials) > 1:
+        raise ValueError(
+            "Config describes more than one trial. Use run_multiple_experiments.py"
+        )
+
+    result = evaluate_checkpoint(trials[0], args.checkpoint, args.split, return_predictions=True)
     metrics = result["metrics"]
     predictions = result["predictions"]
     if args.metrics_out:
