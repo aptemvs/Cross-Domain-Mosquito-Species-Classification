@@ -49,7 +49,7 @@ def feature_signature_payload(config: ExperimentConfig, split_name: str) -> dict
         "validation": "val_ids_path",
         "test": "test_ids_path",
     }
-    payload = config.feature_extraction.model_dump()
+    payload = config.feature_extraction.model_dump(mode='json')
     ids_path = payload[split_to_ids_key[split_name]]
     payload["split"] = split_name
     payload["ids_path"] = ids_path
@@ -59,7 +59,7 @@ def feature_signature_payload(config: ExperimentConfig, split_name: str) -> dict
 
 def run_context_payload(config: ExperimentConfig) -> dict:
     return {
-        "resolved_config_signature": config_signature(config.model_dump()),
+        "resolved_config_signature": config_signature(config.model_dump(mode='json')),
         "training_feature_signature": config_signature(
             feature_signature_payload(config, "training")
         ),
