@@ -18,6 +18,9 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
+from framework.metadata import DOMAIN_NAMES, SPECIES_NAMES
+from schema.experiment_config import ExperimentConfig
+from schema.trial_config import TrialConfig
 from const import model_backend
 
 
@@ -144,25 +147,31 @@ def make_loader(dataset, batch_size: int, shuffle: bool, num_workers: int, devic
     )
 
 
-def split_feature_path(config: dict, split_name: str) -> Path:
-    return Path(config["feature_root"]) / f"{split_name.lower()}_features.pkl"
+def split_feature_path(config: ExperimentConfig, split_name: str) -> Path:
+    return config.feature_root / f"{split_name.lower()}_features.pkl"
 
 
-def training_stats_path(config: dict) -> Path:
-    return Path(config["feature_root"]) / "training_feature_stats.json"
+def training_stats_path(config: ExperimentConfig) -> Path:
+    return config.feature_root / "training_feature_stats.json"
 
 
-def max_train_frames(config: dict) -> int | None:
-    if not config.get("train_crop_seconds"):
-        return None
-    return max(1, int(round(config["train_crop_seconds"] * config["sample_rate"] / config["hop_length"])))
+def max_train_frames(config: TrialConfig) -> int:
+    return max(
+        1,
+        int(
+            round(
+                config.train_crop_seconds
+                * config.feature_extraction.sample_rate
+                / config.feature_extraction.hop_length
+            )
+        ),
+    )
 
 
-def build_model(config: dict, device: torch.device):
-    from framework.metadata import DOMAIN_NAMES, SPECIES_NAMES
-    backend = config["model_backend"]
+def build_model(config: ExperimentConfig, device: torch.device):
+    backend = config.backend
 
-    match backend:
+    match backend.model:
         case model_backend.MODEL_BACKEND_MTRCNN:
             from framework.model_baseline import MTRCNNClassifier
 
