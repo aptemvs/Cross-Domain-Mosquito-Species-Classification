@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader
 from framework.metadata import DOMAIN_NAMES, SPECIES_NAMES
 from schema.experiment_config import ExperimentConfig
 from schema.trial_config import TrialConfig
-from const import model_backend
+from const.model_backend import ModelBackend
 
 
 def set_seed(seed: int) -> None:
@@ -172,7 +172,7 @@ def build_model(config: ExperimentConfig, device: torch.device):
     backend = config.backend
 
     match backend.model:
-        case model_backend.MODEL_BACKEND_MTRCNN:
+        case ModelBackend.MTRCNN:
             from framework.model_baseline import MTRCNNClassifier
 
             return MTRCNNClassifier(
@@ -180,7 +180,7 @@ def build_model(config: ExperimentConfig, device: torch.device):
                 num_species_classes=len(SPECIES_NAMES),
                 num_domain_classes=len(DOMAIN_NAMES),
             ).to(device)
-        case model_backend.MODEL_BACKEND_EFFICIENTAT:
+        case ModelBackend.EFFICIENTAT:
             from framework.model_efficientat import EfficientATClassifier
 
             return EfficientATClassifier(
