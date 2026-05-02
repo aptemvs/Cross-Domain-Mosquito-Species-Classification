@@ -13,7 +13,6 @@ import os
 import random
 import socket
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -45,7 +44,7 @@ def make_output_dir(output_root: str, experiment_name: str) -> Path:
     return output_dir
 
 
-def acquire_experiment_lock(output_dir: Path, experiment_name: str) -> Optional[Path]:
+def acquire_experiment_lock(output_dir: Path, experiment_name: str) -> Path | None:
     lock_path = output_dir / ".experiment.lock"
     payload = {
         "experiment_name": experiment_name,
@@ -62,7 +61,7 @@ def acquire_experiment_lock(output_dir: Path, experiment_name: str) -> Optional[
     return lock_path
 
 
-def release_experiment_lock(lock_path: Optional[Path]) -> None:
+def release_experiment_lock(lock_path: Path | None) -> None:
     if lock_path is not None and lock_path.exists():
         lock_path.unlink()
 
@@ -85,7 +84,7 @@ def make_logger(log_path: Path) -> logging.Logger:
     return logger
 
 
-def append_metrics(csv_path: Path, row: Dict) -> None:
+def append_metrics(csv_path: Path, row: dict) -> None:
     file_exists = csv_path.exists()
     with open(csv_path, "a", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(row.keys()))
@@ -94,35 +93,35 @@ def append_metrics(csv_path: Path, row: Dict) -> None:
         writer.writerow(row)
 
 
-def save_json(path: Path, payload: Union[Dict, List]) -> None:
+def save_json(path: Path, payload: dict | list) -> None:
     with open(path, "w", encoding="utf-8") as handle:
         json.dump(payload, handle, indent=2)
 
 
-def load_json(path: Path) -> Union[Dict, List]:
+def load_json(path: Path) -> dict | list:
     with open(path, "r", encoding="utf-8") as handle:
         return json.load(handle)
 
 
-def mean_std(values: List[float]) -> Tuple[float, float]:
+def mean_std(values: list[float]) -> tuple[float, float]:
     mean_value = sum(values) / len(values)
     variance = sum((value - mean_value) ** 2 for value in values) / len(values)
     return mean_value, math.sqrt(variance)
 
 
-def format_mean_std(values: List[float]) -> str:
+def format_mean_std(values: list[float]) -> str:
     mean_value, std_value = mean_std(values)
     return f"{mean_value:.6f} +- {std_value:.6f}"
 
 
-def write_csv(path: Path, rows: List[Dict]) -> None:
+def write_csv(path: Path, rows: list[dict]) -> None:
     with open(path, "w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
         writer.writeheader()
         writer.writerows(rows)
 
 
-def write_summary_table(path: Path, report_rows: List[Dict]) -> None:
+def write_summary_table(path: Path, report_rows: list[dict]) -> None:
     headers = ["metric", "validation", "test"]
     lines = [
         "| " + " | ".join(headers) + " |",
@@ -153,7 +152,7 @@ def training_stats_path(config: dict) -> Path:
     return Path(config["feature_root"]) / "training_feature_stats.json"
 
 
-def max_train_frames(config: Dict) -> Optional[int]:
+def max_train_frames(config: dict) -> int | None:
     if not config.get("train_crop_seconds"):
         return None
     return max(1, int(round(config["train_crop_seconds"] * config["sample_rate"] / config["hop_length"])))

@@ -8,7 +8,6 @@ Affiliation: Machine Learning Research Group, University of Oxford
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Dict, List, Tuple
 
 
 class ConvStage(nn.Module):
@@ -16,9 +15,9 @@ class ConvStage(nn.Module):
         self,
         in_channels: int,
         out_channels: int,
-        kernel_size: Tuple[int, int],
-        dilation: Tuple[int, int],
-        padding: Tuple[int, int],
+        kernel_size: tuple[int, int],
+        dilation: tuple[int, int],
+        padding: tuple[int, int],
         dropout: float,
     ) -> None:
         super().__init__()
@@ -55,7 +54,7 @@ class ConvStage(nn.Module):
 class MTRCNNBranch(nn.Module):
     def __init__(
         self,
-        stage_specs: List[Tuple[Tuple[int, int], Tuple[int, int], Tuple[int, int]]],
+        stage_specs: list[tuple[tuple[int, int], tuple[int, int], tuple[int, int]]],
         dropout: float,
         n_mels: int,
     ) -> None:
@@ -144,7 +143,7 @@ class MTRCNNClassifier(nn.Module):
         self.species_classifier = nn.Linear(32, num_species_classes)
         self.domain_classifier = nn.Linear(32, num_domain_classes)
 
-    def forward(self, features: torch.Tensor, lengths: torch.Tensor) -> Dict[str, torch.Tensor]:
+    def forward(self, features: torch.Tensor, lengths: torch.Tensor) -> dict[str, torch.Tensor]:
         x = features.unsqueeze(1).transpose(1, 3)
         x = self.input_bn(x)
         x = x.transpose(1, 3)
