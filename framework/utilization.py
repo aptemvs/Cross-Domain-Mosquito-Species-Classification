@@ -38,7 +38,7 @@ def choose_device(requested_device: str) -> torch.device:
     return torch.device("cpu")
 
 
-def make_output_dir(output_root: str, experiment_name: str) -> Path:
+def make_output_dir(output_root: str | Path, experiment_name: str) -> Path:
     output_dir = Path(output_root) / experiment_name
     output_dir.mkdir(parents=True, exist_ok=True)
     return output_dir
