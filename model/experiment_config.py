@@ -17,6 +17,8 @@ class _ExperimentBaseConfig(BaseModel):
 
     feature_extraction: FeatureExtractionConfig
 
+    normalize_features: bool
+
     batch_size: MaybeList[PositiveInt] = Field(union_mode='left_to_right')
     eval_batch_size: MaybeList[PositiveInt] = Field(union_mode='left_to_right')
     num_workers: PositiveInt

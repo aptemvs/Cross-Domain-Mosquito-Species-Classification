@@ -22,7 +22,6 @@ class FeatureExtractionConfig(BaseModel):
 
     sample_rate: PositiveInt
     normalize_waveform: bool
-    normalize_features: bool
     hop_length_ms: PositiveFloat
     win_length_ms: PositiveFloat
 
