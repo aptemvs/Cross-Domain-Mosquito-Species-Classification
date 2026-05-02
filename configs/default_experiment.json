@@ -34,5 +34,7 @@
   "dropout": 0.2,
   "device": "auto",
 
-  "model_backend": "MTRCNN"
+  "backend": {
+    "model": "MTRCNN"
+  }
 }

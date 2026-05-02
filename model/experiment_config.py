@@ -1,16 +1,16 @@
 from pathlib import Path
-from typing import Literal, Annotated
+from typing import Annotated
 
 from pydantic import BaseModel, PositiveInt, PositiveFloat, Field, BeforeValidator
 
-from const.model_backend import ModelBackend
+from model.backend import EfficientATBackend, MTRCNNBackend
 from model.feature_extraction_config import FeatureExtractionConfig
 from validator.to_list import to_list
 
 type AutoList[T, *Args] = Annotated[list[T], BeforeValidator(to_list), *Args]
 
 
-class _ExperimentBaseConfig(BaseModel):
+class ExperimentConfig(BaseModel):
     seed: AutoList[int]
 
     feature_root: Path
@@ -33,18 +33,4 @@ class _ExperimentBaseConfig(BaseModel):
     dropout: AutoList[PositiveFloat]
 
     device: str
-
-
-class _MTRCNNExperimentConfig(_ExperimentBaseConfig):
-    model_backend: Literal[ModelBackend.MTRCNN]
-
-
-class _EfficientATExperimentConfig(_ExperimentBaseConfig):
-    model_backend: Literal[ModelBackend.EFFICIENTAT]
-    efficientat: EfficientATConfig
-
-
-type ExperimentConfig = Annotated[
-    _MTRCNNExperimentConfig | _EfficientATExperimentConfig,
-    Field(discriminator="model_backend"),
-]
+    backend: Annotated[MTRCNNBackend | EfficientATBackend, Field(discriminator="model")]

@@ -8,7 +8,6 @@ Affiliation: Machine Learning Research Group, University of Oxford
 import hashlib
 import json
 from pathlib import Path
-from pydantic import TypeAdapter
 
 from model.experiment_config import ExperimentConfig
 
@@ -21,7 +20,7 @@ def load_config(path: str | Path) -> ExperimentConfig:
     assert path.is_file(), "config path must point to a file"
 
     json_config = path.read_text()
-    return TypeAdapter(ExperimentConfig).validate_json(json_config)
+    return ExperimentConfig.model_validate_json(json_config)
 
 
 def config_subset(config: dict, keys: list[str]) -> dict:

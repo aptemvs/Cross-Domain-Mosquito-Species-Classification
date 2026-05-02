@@ -34,8 +34,8 @@
   "dropout": 0.2,
   "device": "auto",
 
-  "model_backend": "EfficientAT",
-  "efficientat": {
+  "backend": {
+    "model": "EfficientAT",
     "pretrained_name": "mn04_as",
     "width_mult": 0.4,
     "input_dim_t": 200,
