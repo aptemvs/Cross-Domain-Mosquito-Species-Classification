@@ -1,16 +1,17 @@
 from pathlib import Path
 from typing import Literal, Annotated
 
-from pydantic import BaseModel, PositiveInt, PositiveFloat, Field
+from pydantic import BaseModel, PositiveInt, PositiveFloat, Field, BeforeValidator
 
 from const.model_backend import ModelBackend
 from model.feature_extraction_config import FeatureExtractionConfig
-from model.effecientat_config import EfficientATConfig
+from validator.to_list import to_list
 
-type MaybeList[T] = T | list[T]
+type AutoList[T, *Args] = Annotated[list[T], BeforeValidator(to_list), *Args]
+
 
 class _ExperimentBaseConfig(BaseModel):
-    seed: MaybeList[int] = Field(union_mode='left_to_right')
+    seed: AutoList[int]
 
     feature_root: Path
     output_root: Path
@@ -19,17 +20,17 @@ class _ExperimentBaseConfig(BaseModel):
 
     normalize_features: bool
 
-    batch_size: MaybeList[PositiveInt] = Field(union_mode='left_to_right')
-    eval_batch_size: MaybeList[PositiveInt] = Field(union_mode='left_to_right')
+    batch_size: AutoList[PositiveInt]
+    eval_batch_size: AutoList[PositiveInt]
     num_workers: PositiveInt
-    train_crop_seconds: MaybeList[PositiveFloat] = Field(union_mode='left_to_right')
+    train_crop_seconds: AutoList[PositiveFloat]
     epochs: PositiveInt
     early_stopping_min_epoch: PositiveInt
     early_stopping_patience: PositiveInt
 
-    learning_rate: MaybeList[PositiveFloat] = Field(union_mode='left_to_right')
-    weight_decay: MaybeList[PositiveFloat] = Field(union_mode='left_to_right')
-    dropout: MaybeList[PositiveFloat] = Field(union_mode='left_to_right')
+    learning_rate: AutoList[PositiveFloat]
+    weight_decay: AutoList[PositiveFloat]
+    dropout: AutoList[PositiveFloat]
 
     device: str
 
