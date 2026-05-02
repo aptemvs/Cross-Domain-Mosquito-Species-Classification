@@ -20,7 +20,7 @@ from framework.acoustic_feature import (
 from framework.config import config_signature, feature_signature_payload, load_config
 from framework.dataset import load_feature_payload
 from framework.utilization import choose_device, load_json
-from model.experiment_config import FeatureExtractionConfig
+from schema.feature_extraction_config import FeatureExtractionConfig
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Extract log-mel features for all splits.")

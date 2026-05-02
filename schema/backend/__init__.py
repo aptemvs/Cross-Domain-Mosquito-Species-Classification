@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from const.model_backend import ModelBackend
 
-from model.backend.effecientat import EfficientATConfig
+from schema.backend.effecientat import EfficientATConfig
 
 
 class MTRCNNBackend(BaseModel):

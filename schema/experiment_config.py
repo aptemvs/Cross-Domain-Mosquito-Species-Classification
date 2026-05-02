@@ -3,8 +3,8 @@ from typing import Annotated
 
 from pydantic import BaseModel, PositiveInt, PositiveFloat, Field, BeforeValidator
 
-from model.backend import EfficientATBackend, MTRCNNBackend
-from model.feature_extraction_config import FeatureExtractionConfig
+from schema.backend import EfficientATBackend, MTRCNNBackend
+from schema.feature_extraction_config import FeatureExtractionConfig
 from validator.to_list import to_list
 
 type AutoList[T, *Args] = Annotated[list[T], BeforeValidator(to_list), *Args]

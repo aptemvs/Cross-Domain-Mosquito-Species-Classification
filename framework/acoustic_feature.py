@@ -17,7 +17,7 @@ from torchlibrosa.stft import LogmelFilterBank, Spectrogram
 
 from framework.config import config_signature, feature_signature_payload
 from framework.metadata import DOMAIN_TO_INDEX, SPECIES_TO_INDEX, load_id_list, parse_file_id
-from model.experiment_config import ExperimentConfig
+from schema.experiment_config import ExperimentConfig
 
 
 class LogMelSpectrogram(nn.Module):

@@ -9,7 +9,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from model.experiment_config import ExperimentConfig
+from schema.experiment_config import ExperimentConfig
 
 
 def load_config(path: str | Path) -> ExperimentConfig:
