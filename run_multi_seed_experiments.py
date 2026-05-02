@@ -6,25 +6,18 @@ Affiliation: Machine Learning Research Group, University of Oxford
 """
 
 import argparse
-from copy import deepcopy
 from pathlib import Path
 
 from framework.config import load_config, run_context_payload
 from framework.utilization import format_mean_std, load_json, save_json, write_csv, write_summary_table
-from train import experiment_name_for_seed, train_experiment
+from train import trial_name, train_experiment
+from utils.generate_trials import generate_trials
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run 10 fixed-seed training and evaluation jobs.")
     parser.add_argument("--config", type=str, default="configs/multi_seed_experiment.json")
     parser.add_argument("--overwrite", action="store_true")
     return parser.parse_args()
-
-
-def build_run_config(base_config: dict, seed: int) -> dict:
-    config = deepcopy(base_config)
-    config["seed"] = seed
-    config["experiment_name"] = experiment_name_for_seed(seed, config)
-    return config
 
 
 def normalize_run_summary(run_summary: dict) -> dict:
@@ -119,17 +112,17 @@ def aggregate_report_rows(rows: list) -> list:
 
 def main() -> None:
     args = parse_args()
-    base_config = load_config(args.config)
+    config = load_config(args.config)
     run_summaries = []
     skipped_runs = []
 
-    for seed in base_config["seeds"]:
-        config = build_run_config(base_config, seed)
-        output_dir = Path(config["output_root"]) / config["experiment_name"]
+    for trial in generate_trials(config):
+        experiment_name = trial_name(trial)
+        output_dir = Path(trial.output_root) / experiment_name
         run_summary_path = output_dir / "run_summary.json"
         run_context_path = output_dir / "run_context.json"
         force_overwrite = args.overwrite
-        current_run_context = run_context_payload(config)
+        current_run_context = run_context_payload(trial)
 
         if (
             run_summary_path.exists()
@@ -143,21 +136,21 @@ def main() -> None:
             continue
 
         if not run_summary_path.exists() or force_overwrite:
-            train_result = train_experiment(config, overwrite=force_overwrite)
+            train_result = train_experiment(trial, overwrite=force_overwrite)
             if train_result["status"] == "running":
-                message = f"skipping {config['experiment_name']}: already running"
+                message = f"skipping {experiment_name}: already running"
                 print(message)
                 skipped_runs.append(
                     {
-                        "seed": seed,
-                        "experiment_name": config["experiment_name"],
+                        "config": trial.model_dump(mode="json"),
+                        "experiment_name": experiment_name,
                         "output_dir": str(output_dir),
                         "reason": "already running",
                     }
                 )
                 continue
             run_summary = {
-                "seed": seed,
+                "config": trial.model_dump(mode="json"),
                 "output_dir": train_result["output_dir"],
                 "best_checkpoint_path": train_result["best_checkpoint_path"],
                 "final_checkpoint_path": train_result["final_checkpoint_path"],
@@ -167,7 +160,7 @@ def main() -> None:
             save_json(run_summary_path, run_summary)
             run_summaries.append(run_summary)
 
-    report_dir = Path(base_config["output_root"]) / "multi_seed_summary"
+    report_dir = config.output_root / "multi_seed_summary"
     report_dir.mkdir(parents=True, exist_ok=True)
     save_json(report_dir / "run_summaries.json", run_summaries)
     save_json(report_dir / "skipped_runs.json", skipped_runs)
