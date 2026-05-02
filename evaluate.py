@@ -9,7 +9,6 @@ import argparse
 import json
 from copy import deepcopy
 from pathlib import Path
-from typing import Dict, List, Optional, Union
 
 import torch
 
@@ -30,17 +29,17 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def save_prediction_rows(path: Union[str, Path], rows) -> None:
+def save_prediction_rows(path: str | Path, rows) -> None:
     with open(path, "w", encoding="utf-8") as handle:
         for row in rows:
             handle.write(json.dumps(row) + "\n")
 
 
-def split_summary_path(config: Dict) -> Path:
+def split_summary_path(config: dict) -> Path:
     return Path(config["train_ids_path"]).parent / "split_summary.json"
 
 
-def load_unseen_domain_by_species(config: Dict) -> Dict[str, str]:
+def load_unseen_domain_by_species(config: dict) -> dict[str, str]:
     path = split_summary_path(config)
     if not path.exists():
         return {}
@@ -49,7 +48,7 @@ def load_unseen_domain_by_species(config: Dict) -> Dict[str, str]:
     return payload.get("unseen_domain_by_species", {})
 
 
-def annotate_evaluation_partition(prediction_rows: List[Dict], unseen_domain_by_species: Dict[str, str]) -> List[Dict]:
+def annotate_evaluation_partition(prediction_rows: list[dict], unseen_domain_by_species: dict[str, str]) -> list[dict]:
     annotated_rows = []
     for row in prediction_rows:
         annotated_row = dict(row)
@@ -63,7 +62,7 @@ def annotate_evaluation_partition(prediction_rows: List[Dict], unseen_domain_by_
     return annotated_rows
 
 
-def subset_balanced_accuracy(prediction_rows: List[Dict]) -> Optional[float]:
+def subset_balanced_accuracy(prediction_rows: list[dict]) -> float | None:
     if not prediction_rows:
         return None
     preds = torch.tensor([row["predicted_species_index"] for row in prediction_rows], dtype=torch.long)
@@ -71,7 +70,7 @@ def subset_balanced_accuracy(prediction_rows: List[Dict]) -> Optional[float]:
     return balanced_accuracy(preds, labels, len(SPECIES_NAMES))
 
 
-def append_official_metrics(metrics: Dict, prediction_rows: List[Dict], unseen_domain_by_species: Dict[str, str]) -> Dict:
+def append_official_metrics(metrics: dict, prediction_rows: list[dict], unseen_domain_by_species: dict[str, str]) -> dict:
     annotated_rows = annotate_evaluation_partition(prediction_rows, unseen_domain_by_species)
     seen_rows = [row for row in annotated_rows if row["evaluation_partition"] == "seen"]
     unseen_rows = [row for row in annotated_rows if row["evaluation_partition"] == "unseen"]
@@ -90,7 +89,7 @@ def append_official_metrics(metrics: Dict, prediction_rows: List[Dict], unseen_d
     }
 
 
-def evaluate_checkpoint(config: Dict, checkpoint_path: Union[str, Path], split: str, return_predictions: bool = True) -> Dict:
+def evaluate_checkpoint(config: dict, checkpoint_path: str | Path, split: str, return_predictions: bool = True) -> dict:
     config = deepcopy(config)
     device = choose_device(config["device"])
     print(f"loading from {checkpoint_path}")
