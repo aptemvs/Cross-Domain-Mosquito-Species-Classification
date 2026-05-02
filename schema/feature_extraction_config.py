@@ -4,6 +4,7 @@ from typing import Annotated
 from pydantic import (
     BaseModel,
     PositiveInt,
+    NonNegativeInt,
     PositiveFloat,
     Field,
     computed_field,
@@ -37,7 +38,7 @@ class FeatureExtractionConfig(BaseModel):
 
     n_fft: PositiveInt = Field(default_factory=lambda data: data["win_length"])
     n_mels: PositiveInt
-    f_min: PositiveInt = Field(default=0)
+    f_min: NonNegativeInt = Field(default=0)
     f_max: PositiveInt = Field(default_factory=lambda data: data["sample_rate"] // 2)
 
     # ==========
