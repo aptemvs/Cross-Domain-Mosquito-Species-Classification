@@ -38,7 +38,7 @@ class EfficientATClassifier(nn.Module):
         assert config.backend.model == ModelBackend.EFFICIENTAT
 
         with torch.no_grad():
-            dummy = torch.zeros(1, 1, config.feature_extraction.n_mels), config.backend.input_dim_t
+            dummy = torch.zeros(1, 1, config.feature_extraction.n_mels, config.backend.input_dim_t)
             _, features = self.backbone(dummy)
 
         feature_dim = int(features.shape[1])
