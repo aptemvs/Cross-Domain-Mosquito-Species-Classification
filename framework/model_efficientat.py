@@ -10,12 +10,11 @@ import torch.nn as nn
 from const.model_backend import ModelBackend
 from schema.trial_config import TrialConfig
 from schema.experiment_config import ExperimentConfig
-from schema.backend import EfficientATBackend
 
 
 class EfficientATClassifier(nn.Module):
 
-    def __init__(self, config: TrialConfig[EfficientATBackend], num_species_classes: int, num_domain_classes: int) -> None:
+    def __init__(self, config: TrialConfig, num_species_classes: int, num_domain_classes: int) -> None:
         assert config.backend.model == ModelBackend.EFFICIENTAT
 
         super().__init__()
