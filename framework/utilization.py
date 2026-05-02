@@ -168,7 +168,7 @@ def max_train_frames(config: TrialConfig) -> int:
     )
 
 
-def build_model(config: ExperimentConfig, device: torch.device):
+def build_model(config: TrialConfig, device: torch.device):
     backend = config.backend
 
     match backend.model:
