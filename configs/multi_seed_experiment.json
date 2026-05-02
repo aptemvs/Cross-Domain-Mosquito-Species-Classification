@@ -46,7 +46,7 @@
   "device": "auto",
 
   "backend": {
-    "backend": "EfficientAT",
+    "model": "EfficientAT",
     "pretrained_name": "mn04_as",
     "width_mult": 0.4,
     "input_dim_t": 200,
