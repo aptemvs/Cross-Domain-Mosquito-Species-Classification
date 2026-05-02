@@ -9,6 +9,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from const.model_backend import ModelBackend
+from schema.trial_config import TrialConfig
 
 class ConvStage(nn.Module):
     def __init__(
@@ -107,9 +109,11 @@ def masked_mean_max(x: torch.Tensor, lengths: torch.Tensor) -> torch.Tensor:
 
 
 class MTRCNNClassifier(nn.Module):
-    def __init__(self, config, num_species_classes: int, num_domain_classes: int) -> None:
+    def __init__(self, config: TrialConfig, num_species_classes: int, num_domain_classes: int) -> None:
+        assert config.backend.model == ModelBackend.MTRCNN
+
         super().__init__()
-        self.input_bn = nn.BatchNorm2d(config["n_mels"])
+        self.input_bn = nn.BatchNorm2d(config.feature_extraction.n_mels)
 
         self.kernel_3_branch = MTRCNNBranch(
             stage_specs=[
@@ -117,8 +121,8 @@ class MTRCNNClassifier(nn.Module):
                 ((3, 3), (2, 1), (2, 0)),
                 ((3, 3), (3, 1), (3, 0)),
             ],
-            dropout=config["dropout"],
-            n_mels=config["n_mels"],
+            dropout=config.dropout,
+            n_mels=config.feature_extraction.n_mels,
         )
         self.kernel_5_branch = MTRCNNBranch(
             stage_specs=[
@@ -126,8 +130,8 @@ class MTRCNNClassifier(nn.Module):
                 ((5, 5), (2, 1), (4, 1)),
                 ((5, 5), (3, 1), (6, 1)),
             ],
-            dropout=config["dropout"],
-            n_mels=config["n_mels"],
+            dropout=config.dropout,
+            n_mels=config.feature_extraction.n_mels,
         )
         self.kernel_7_branch = MTRCNNBranch(
             stage_specs=[
@@ -135,8 +139,8 @@ class MTRCNNClassifier(nn.Module):
                 ((7, 7), (2, 1), (6, 2)),
                 ((7, 7), (3, 1), (9, 2)),
             ],
-            dropout=config["dropout"],
-            n_mels=config["n_mels"],
+            dropout=config.dropout,
+            n_mels=config.feature_extraction.n_mels,
         )
 
         self.embedding = nn.Linear(64 * 3, 32)
