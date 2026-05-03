@@ -265,3 +265,10 @@ Temporary Items
 
 
 tmp
+
+# pixi environments
+.pixi/*
+!.pixi/config.toml
+
+# Dev containers
+.devcontainer-cache
