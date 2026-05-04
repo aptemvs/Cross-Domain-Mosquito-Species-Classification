@@ -225,6 +225,12 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
         def with_prefix(prefix: str, metrics: dict) -> dict:
             return {f"{prefix}_{key}": value for key, value in metrics.items()}
 
+        def rounded_prefixed_metrics(prefix: str, metrics: dict) -> dict:
+            payload = {}
+            for key, value in numeric_metrics_only(metrics).items():
+                payload[f"{prefix}_{key}"] = round(value, 6) if value is not None else None
+            return payload
+
         for epoch in range(1, config["epochs"] + 1):
             train_metrics = train_one_epoch(
                 model=model,
@@ -243,8 +249,8 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
 
             row = {
                 "epoch": epoch,
-                **with_prefix("train", train_metrics),
-                **with_prefix("val", val_metrics),
+                **rounded_prefixed_metrics("train", train_metrics),
+                **rounded_prefixed_metrics("val", val_metrics),
                 "lr": optimizer.param_groups[0]["lr"],
             }
             for domain_name in DOMAIN_NAMES:
@@ -255,7 +261,7 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
 
             append_metrics(output_dir / "metrics.csv", row)
             logger.info(row)
-            wandb.log(row)
+            wandb.log(numeric_metrics_only(row))
 
             current_score = val_metrics["species_balanced_accuracy"]
             if current_score > best_score:
