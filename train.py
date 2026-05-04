@@ -17,7 +17,7 @@ from const import model_backend
 from framework.config import config_signature, feature_signature_payload, load_config, run_context_payload
 from framework.dataset import MosquitoFeatureDataset, pad_collate_fn
 from framework.engine import evaluate_model, train_one_epoch
-from framework.git import get_commit_hash
+from framework.git import get_git_commit_summary
 from framework.metadata import DOMAIN_NAMES, SPECIES_NAMES
 from framework.utilization import (
     acquire_experiment_lock,
@@ -90,7 +90,7 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
     config = deepcopy(config)
     config["experiment_name"] = experiment_name_for_seed(config["seed"], config)
     set_seed(config["seed"])
-    commit_hash = get_commit_hash()
+    commit_summary = get_git_commit_summary()
     device = choose_device(config["device"])
     output_dir = make_output_dir(config["output_root"], config["experiment_name"])
     model_dir = output_dir / "model"
@@ -165,8 +165,8 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
         wandb.init(
             entity="biodcase-2026-cd-msc",
             project="BioDCASE_Task5",
-            group=f'"commit_{commit_hash}"',
-            name=f"{config['experiment_name']}_commit_{commit_hash}",
+            group=commit_summary,
+            name=f"{config['experiment_name']}_{commit_summary}",
             config=config,
         )
         save_json(run_context_path, current_run_context)
@@ -214,6 +214,17 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
         last_val_metrics = {}
         epochs_without_improvement = 0
         epoch = 0
+
+        def numeric_metrics_only(metrics: dict) -> dict:
+            return {
+                key: value
+                for key, value in metrics.items()
+                if value is None or isinstance(value, (int, float))
+            }
+
+        def with_prefix(prefix: str, metrics: dict) -> dict:
+            return {f"{prefix}_{key}": value for key, value in metrics.items()}
+
         for epoch in range(1, config["epochs"] + 1):
             train_metrics = train_one_epoch(
                 model=model,
@@ -232,18 +243,8 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
 
             row = {
                 "epoch": epoch,
-                "train_loss": round(train_metrics["loss"], 6),
-                "train_species_loss": round(train_metrics["species_loss"], 6),
-                "train_domain_loss": round(train_metrics["domain_loss"], 6),
-                "train_species_accuracy": round(train_metrics["species_accuracy"], 6),
-                "train_domain_accuracy": round(train_metrics["domain_accuracy"], 6),
-                "val_loss": round(val_metrics["loss"], 6),
-                "val_species_loss": round(val_metrics["species_loss"], 6),
-                "val_domain_loss": round(val_metrics["domain_loss"], 6),
-                "val_species_accuracy": round(val_metrics["species_accuracy"], 6),
-                "val_species_balanced_accuracy": round(val_metrics["species_balanced_accuracy"], 6),
-                "val_domain_accuracy": round(val_metrics["domain_accuracy"], 6),
-                "val_domain_balanced_accuracy": round(val_metrics["domain_balanced_accuracy"], 6),
+                **with_prefix("train", train_metrics),
+                **with_prefix("val", val_metrics),
                 "lr": optimizer.param_groups[0]["lr"],
             }
             for domain_name in DOMAIN_NAMES:
@@ -302,6 +303,15 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
         best_eval = evaluate_and_save_outputs(config, best_checkpoint_path, output_dir, "best_model_eval")
         logger.info("Evaluating final checkpoint outputs.")
         final_eval = evaluate_and_save_outputs(config, final_checkpoint_path, output_dir, "final_model_eval")
+
+        wandb.log(
+            {
+                **with_prefix("best_val", numeric_metrics_only(best_eval["validation_metrics"])),
+                **with_prefix("best_test", numeric_metrics_only(best_eval["test_metrics"])),
+                **with_prefix("final_val", numeric_metrics_only(final_eval["validation_metrics"])),
+                **with_prefix("final_test", numeric_metrics_only(final_eval["test_metrics"])),
+            }
+        )
 
         return {
             "status": "completed",
