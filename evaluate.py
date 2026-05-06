@@ -26,7 +26,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Evaluate saved mosquito classifier.")
     parser.add_argument("--config", type=str, default="configs/default_experiment.json")
     parser.add_argument("--checkpoint", type=str, required=True)
-    parser.add_argument("--split", choices=["validation", "test"], default="test")
+    parser.add_argument("--split", type=Split, choices=[Split.VALIDATION, Split.TEST], default=Split.TEST)
     parser.add_argument("--metrics-out", type=str, default=None)
     parser.add_argument("--predictions-out", type=str, default=None)
     return parser.parse_args()
