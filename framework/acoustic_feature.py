@@ -176,7 +176,7 @@ def compute_training_split_stats(feature_pickle_path: str | Path) -> dict:
     }
 
 
-def save_feature_stats(stats: dict, feature_root: str | Path) -> Path:
+def save_split_stats(stats: dict, feature_root: str | Path) -> Path:
     output_path = feature_stats_path(feature_root)
     with open(output_path, "w", encoding="utf-8") as handle:
         json.dump(stats, handle, indent=2)
