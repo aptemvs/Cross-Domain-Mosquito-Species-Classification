@@ -14,7 +14,7 @@ from pydantic import (
 
 from validator.path import check_path_exists
 from const.enum import Split
-from framework.utilization import compute_signature
+from framework.hashing import compute_signature
 
 
 class FeatureExtractionConfig(BaseModel):

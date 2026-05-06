@@ -7,7 +7,7 @@ Affiliation: Machine Learning Research Group, University of Oxford
 
 from pathlib import Path
 
-from framework.utilization import compute_signature, file_sha256
+from framework.hashing import compute_signature, file_sha256
 from schema.experiment import ExperimentConfig
 from schema.feature import FeatureExtractionConfigDump
 from const.enum import Split
