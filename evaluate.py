@@ -134,7 +134,7 @@ def evaluate_checkpoint(config: TrialConfig, checkpoint_path: str | Path, split:
     else:
         metrics = result
         predictions = None
-    metrics["split"] = split
+    metrics["split"] = split.value
     metrics["checkpoint_path"] = str(checkpoint_path)
     if return_predictions:
         return {
