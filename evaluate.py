@@ -16,10 +16,9 @@ from framework.config import load_config
 from framework.dataset import get_loader
 from framework.engine import balanced_accuracy, evaluate_model
 from framework.metadata import DOMAIN_NAMES, SPECIES_NAMES
-from framework.utilization import build_model, choose_device
+from framework.utilization import build_model, choose_device, generate_trials
 from schema.trial import TrialConfig
 from schema.experiment import ExperimentConfig
-from utils.generate_trials import generate_trials
 from const.enum import Split
 
 

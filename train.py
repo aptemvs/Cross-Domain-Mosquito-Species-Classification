@@ -34,7 +34,7 @@ from framework.utilization import (
     release_experiment_lock,
 )
 
-from utils.generate_trials import generate_trials
+from framework.utilization import generate_trials
 from schema.trial import TrialConfig
 from evaluate import evaluate_checkpoint, save_prediction_rows
 from const.enum import Split

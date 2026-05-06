@@ -13,12 +13,16 @@ import os
 import random
 import socket
 from pathlib import Path
+from collections.abc import Iterator
+from copy import deepcopy
+import itertools
 
 import numpy as np
 import torch
 
 from framework.metadata import DOMAIN_NAMES, SPECIES_NAMES
 from schema.trial import TrialConfig
+from schema.experiment import ExperimentConfig
 from const.enum import ModelBackend
 
 
@@ -169,3 +173,16 @@ def build_model(config: TrialConfig, device: torch.device):
         case _:
             raise ValueError(f"Unknown model backend {backend!r}")
 
+
+def generate_trials(config: ExperimentConfig) -> Iterator[TrialConfig]:
+    dump = config.model_dump()
+    iterable_keys = list(filter(lambda key: isinstance(dump[key], list), dump.keys()))
+    iterable_values = [dump[key] for key in iterable_keys]
+
+    for values in itertools.product(*iterable_values):
+        trial_dump = deepcopy(dump)
+        trial_dump.update(zip(iterable_keys, values))
+
+        trial = TrialConfig.model_validate(trial_dump)
+
+        yield trial
