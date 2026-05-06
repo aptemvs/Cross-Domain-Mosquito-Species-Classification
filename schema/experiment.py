@@ -6,7 +6,7 @@ from pydantic import BaseModel, PositiveInt, PositiveFloat, Field, BeforeValidat
 from schema.backend.efficientat import EfficientATBackend
 from schema.backend.mtrcnn import MTRCNNBackend
 from schema.feature import FeatureExtractionConfig
-from validator import to_list
+from validator.collection import to_list
 
 type AutoList[T, *Args] = Annotated[list[T], BeforeValidator(to_list), *Args]
 

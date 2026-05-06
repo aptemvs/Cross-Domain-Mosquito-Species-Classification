@@ -12,7 +12,7 @@ from pydantic import (
     AfterValidator,
 )
 
-from validator import check_path_exists
+from validator.path import check_path_exists
 from const.enum import Split
 from framework.utilization import compute_signature
 
