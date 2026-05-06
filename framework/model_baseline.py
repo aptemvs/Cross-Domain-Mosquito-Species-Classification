@@ -9,8 +9,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from const.model_backend import ModelBackend
-from schema.trial_config import TrialConfig
+from const.enum import ModelBackend
+from schema.trial import TrialConfig
 
 class ConvStage(nn.Module):
     def __init__(

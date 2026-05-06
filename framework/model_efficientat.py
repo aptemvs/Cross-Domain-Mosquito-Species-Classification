@@ -7,9 +7,9 @@ from typing import Dict
 import torch
 import torch.nn as nn
 
-from const.model_backend import ModelBackend
-from schema.trial_config import TrialConfig
-from schema.experiment_config import ExperimentConfig
+from const.enum import ModelBackend
+from schema.trial import TrialConfig
+from schema.experiment import ExperimentConfig
 
 
 class EfficientATClassifier(nn.Module):
