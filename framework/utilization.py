@@ -16,12 +16,9 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
 
 from framework.metadata import DOMAIN_NAMES, SPECIES_NAMES
-from schema.experiment_config import ExperimentConfig
 from schema.trial_config import TrialConfig
-from const.model_backend import ModelBackend
 
 
 def set_seed(seed: int) -> None:
@@ -133,26 +130,6 @@ def write_summary_table(path: Path, report_rows: list[dict]) -> None:
     for row in report_rows:
         lines.append(f"| {row['metric']} | {row['validation']} | {row['test']} |")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-
-
-def make_loader(dataset, batch_size: int, shuffle: bool, num_workers: int, device: torch.device, collate_fn) -> DataLoader:
-    return DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=shuffle,
-        num_workers=num_workers,
-        collate_fn=collate_fn,
-        pin_memory=device.type == "cuda",
-        persistent_workers=True
-    )
-
-
-def split_feature_path(config: ExperimentConfig, split_name: str) -> Path:
-    return config.feature_root / f"{split_name.lower()}_features.pkl"
-
-
-def training_stats_path(config: ExperimentConfig) -> Path:
-    return config.feature_root / "training_feature_stats.json"
 
 
 def max_train_frames(config: TrialConfig) -> int:

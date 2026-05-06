@@ -5,8 +5,6 @@ Email: Yuanbo.Hou@eng.ox.ac.uk
 Affiliation: Machine Learning Research Group, University of Oxford
 """
 
-import json
-import pickle
 from pathlib import Path
 
 import librosa
@@ -86,14 +84,6 @@ def extract_log_mel_feature(
     with torch.no_grad():
         feature = extractor(waveform_tensor)[0].detach().cpu().numpy().astype(np.float32)
     return feature
-
-
-def split_feature_path(feature_root: str | Path, split_name: str) -> Path:
-    return Path(feature_root) / f"{split_name.lower()}_features.pkl"
-
-
-def feature_stats_path(feature_root: str | Path) -> Path:
-    return Path(feature_root) / "training_feature_stats.json"
 
 
 def extract_split_features(
