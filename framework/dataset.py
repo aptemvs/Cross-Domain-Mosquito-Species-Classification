@@ -5,116 +5,163 @@ Email: Yuanbo.Hou@eng.ox.ac.uk
 Affiliation: Machine Learning Research Group, University of Oxford
 """
 
-import json
-import pickle
 import random
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from collections.abc import Callable
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset
+from torch.nn.utils.rnn import pad_sequence
+from torch.utils.data import DataLoader
+from torchvision import transforms
+from streaming.base import StreamingDataset
+
+from framework.config import get_split_extraction_config
+from schema.data import (
+    SplitMetadata,
+    SplitStatistics,
+    ExtractedFeature,
+    DataLoaderBatch,
+)
+from schema.experiment import ExperimentConfig
+from const.filename import (
+    TRAINING_SPLIT_STATS_FILENAME,
+    METADATA_FILENAME,
+)
+from const.enum import Split
 
 
-def load_feature_payload(path: Union[str, Path]) -> Dict:
-    with open(path, "rb") as handle:
-        return pickle.load(handle)
+def split_feature_dir(feature_root: str | Path, split: Split) -> Path:
+    return Path(feature_root) / f"{split.value}"
 
 
-def load_feature_stats(path: Union[str, Path]) -> Tuple[np.ndarray, np.ndarray]:
-    with open(path, "r", encoding="utf-8") as handle:
-        payload = json.load(handle)
-    mean = np.asarray(payload["mean"], dtype=np.float32)
-    std = np.asarray(payload["std"], dtype=np.float32)
-    return mean, std
+def training_split_stats_path(feature_root: str | Path) -> Path:
+    return Path(feature_root) / TRAINING_SPLIT_STATS_FILENAME
 
 
-def validate_feature_payload(payload: Dict, expected_signature: Optional[str]) -> None:
-    if expected_signature is None:
-        return
-    if payload.get("config_signature") != expected_signature:
-        raise ValueError("Feature file does not match the current configuration.")
+def load_split_metadata(feature_root: Path, split: Split) -> SplitMetadata:
+    split_dir = split_feature_dir(feature_root, split)
+    with open(split_dir / METADATA_FILENAME, "r") as f:
+        return SplitMetadata.model_validate_json(f.read())
 
 
-def validate_feature_stats_payload(path: Union[str, Path], expected_signature: Optional[str]) -> None:
-    if expected_signature is None:
-        return
-    with open(path, "r", encoding="utf-8") as handle:
-        payload = json.load(handle)
-    if payload.get("feature_config_signature") != expected_signature:
-        raise ValueError("Feature statistics file does not match the current training feature configuration.")
+def load_training_split_stats(feature_root: Path) -> SplitStatistics:
+    with open(training_split_stats_path(feature_root), "r") as f:
+        return SplitStatistics.model_validate_json(f.read())
 
 
-class MosquitoFeatureDataset(Dataset):
-    def __init__(
-        self,
-        feature_pickle_path: Union[str, Path],
-        feature_stats_path: Optional[Union[str, Path]] = None,
-        max_train_frames: Optional[int] = None,
-        training: bool = False,
-        normalize_features: bool = True,
-        expected_feature_signature: Optional[str] = None,
-        expected_stats_signature: Optional[str] = None,
-    ) -> None:
-        payload = load_feature_payload(feature_pickle_path)
-        validate_feature_payload(payload, expected_feature_signature)
-        self.samples = payload["items"]
-        self.training = training
+def validate_split_metadata(metadata: SplitMetadata, config: ExperimentConfig, split: Split) -> None:
+    if metadata.config.signature != get_split_extraction_config(config, split).signature:
+        raise ValueError("Extraction config of the provided split does not match the current configuration")
+
+
+def validate_training_split_stats(stats: SplitStatistics, config: ExperimentConfig) -> None:
+    if stats.config.signature != get_split_extraction_config(config, Split.TRAINING).signature:
+        raise ValueError(
+            "Extraction config of the provided split statistics does not match the current configuration."
+        )
+
+
+def pad_collate_fn(batch: list[ExtractedFeature]) -> DataLoaderBatch:
+    lengths = torch.tensor([item.feature.shape[0] for item in batch], dtype=torch.long)
+    padded = pad_sequence(
+        [torch.from_numpy(item.feature) for item in batch],
+        batch_first=True,
+        padding_value=0,
+    ).type(torch.float32)
+
+    return DataLoaderBatch(
+        file_id=[item.file_id for item in batch],
+        features=padded,
+        lengths=lengths,
+        species_labels=torch.tensor([item.species_label for item in batch], dtype=torch.long),
+        domain_labels=torch.tensor([item.domain_label for item in batch], dtype=torch.long),
+        species=[item.species for item in batch],
+        domain=[item.domain for item in batch],
+        audio_path=[item.audio_path for item in batch],
+    )
+
+
+def get_loader[T](
+    feature_root: Path,
+    split: Split,
+    batch_size: int = 64,
+    num_workers: int = 4,
+    max_train_frames: int | None = None,
+    training: bool = False,
+    shuffle: bool = False,
+    pin_memory: bool = False,
+    config: ExperimentConfig | None = None,
+    normalize_features: bool = False,
+    verify_config_signature: bool = False,
+    verify_stats_signature: bool = False,
+    min_prefetch_samples: int = 1000,
+    collate_fn: Callable[[list[ExtractedFeature]], T] = pad_collate_fn,
+) -> DataLoader[T]:
+    metadata = load_split_metadata(feature_root, split)
+
+    if verify_config_signature:
+        assert config is not None
+        validate_split_metadata(metadata, config, split)
+
+    transforms_list = []
+
+    if normalize_features:
+        stats = load_training_split_stats(feature_root)
+        if verify_stats_signature:
+            assert config is not None
+            validate_training_split_stats(stats, config)
+
+        transforms_list.append(
+            Normalize(
+                np.array(stats.mean, dtype=np.float32),
+                np.array(stats.std, dtype=np.float32),
+            )
+        )
+
+    if training and max_train_frames is not None:
+        transforms_list.append(MaybeCrop(max_train_frames))
+
+    transform = transforms.Compose(transforms_list)
+
+    def _collate_fn(raw_batch: list[dict]) -> T:
+        batch = [ExtractedFeature.model_validate(item) for item in raw_batch]
+        for item in batch:
+            item.feature = transform(item.feature.copy())
+
+        return collate_fn(batch)
+
+    split_path = split_feature_dir(feature_root, split)
+    return DataLoader(
+        StreamingDataset(
+            local=str(split_path),
+            batch_size=batch_size,
+            predownload=max(min_prefetch_samples, batch_size * 3),
+            shuffle=shuffle,
+        ),
+        collate_fn=_collate_fn,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        persistent_workers=num_workers > 0,
+    )
+
+
+class Normalize:
+    def __init__(self, mean: np.ndarray, std: np.ndarray) -> None:
+        self.mean = mean
+        self.std = std
+
+    def __call__(self, feature: np.ndarray) -> np.ndarray:
+        return (feature - self.mean) / np.maximum(self.std, 1e-8)
+
+
+class MaybeCrop:
+    def __init__(self, max_train_frames: int) -> None:
         self.max_train_frames = max_train_frames
-        self.normalize_features = normalize_features and feature_stats_path is not None
-        self.feature_mean = None
-        self.feature_std = None
-        if self.normalize_features:
-            validate_feature_stats_payload(feature_stats_path, expected_stats_signature)
-            self.feature_mean, self.feature_std = load_feature_stats(feature_stats_path)
 
-    def __len__(self) -> int:
-        return len(self.samples)
-
-    def _maybe_crop(self, feature: np.ndarray) -> np.ndarray:
-        if not self.training or not self.max_train_frames or feature.shape[0] <= self.max_train_frames:
+    def __call__(self, feature: np.ndarray) -> np.ndarray:
+        if feature.shape[0] <= self.max_train_frames:
             return feature
         start = random.randint(0, feature.shape[0] - self.max_train_frames)
         return feature[start : start + self.max_train_frames]
-
-    def _normalize(self, feature: np.ndarray) -> np.ndarray:
-        if not self.normalize_features:
-            return feature
-        return (feature - self.feature_mean) / np.maximum(self.feature_std, 1e-8)
-
-    def __getitem__(self, index: int) -> Dict:
-        sample = self.samples[index]
-        feature = sample["feature"].astype(np.float32)
-        feature = self._maybe_crop(feature)
-        feature = self._normalize(feature)
-        return {
-            "file_id": sample["file_id"],
-            "feature": torch.tensor(feature, dtype=torch.float32),
-            "length": feature.shape[0],
-            "species_label": sample["species_label"],
-            "domain_label": sample["domain_label"],
-            "species": sample["species"],
-            "domain": sample["domain"],
-            "audio_path": sample["audio_path"],
-        }
-
-
-def pad_collate_fn(batch: List[Dict]) -> Dict:
-    lengths = torch.tensor([item["length"] for item in batch], dtype=torch.long)
-    max_length = int(lengths.max().item()) if len(lengths) else 0
-    feature_dim = int(batch[0]["feature"].shape[1]) if batch else 0
-    padded = torch.zeros(len(batch), max_length, feature_dim, dtype=torch.float32)
-
-    for idx, item in enumerate(batch):
-        padded[idx, : item["length"], :] = item["feature"]
-
-    return {
-        "file_id": [item["file_id"] for item in batch],
-        "features": padded,
-        "lengths": lengths,
-        "species_labels": torch.tensor([item["species_label"] for item in batch], dtype=torch.long),
-        "domain_labels": torch.tensor([item["domain_label"] for item in batch], dtype=torch.long),
-        "species": [item["species"] for item in batch],
-        "domain": [item["domain"] for item in batch],
-        "audio_path": [item["audio_path"] for item in batch],
-    }
