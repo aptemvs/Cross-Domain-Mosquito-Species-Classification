@@ -12,14 +12,15 @@ from pathlib import Path
 
 import torch
 
-from framework.config import config_signature, feature_signature_payload, load_config
-from framework.dataset import MosquitoFeatureDataset, pad_collate_fn
+from framework.config import load_config
+from framework.dataset import get_loader
 from framework.engine import balanced_accuracy, evaluate_model
 from framework.metadata import DOMAIN_NAMES, SPECIES_NAMES
-from framework.utilization import build_model, choose_device, make_loader, split_feature_path, training_stats_path
-from schema.trial_config import TrialConfig
-from schema.experiment_config import ExperimentConfig
+from framework.utilization import build_model, choose_device
+from schema.trial import TrialConfig
+from schema.experiment import ExperimentConfig
 from utils.generate_trials import generate_trials
+from const.enum import Split
 
 
 def parse_args() -> argparse.Namespace:
@@ -92,26 +93,24 @@ def append_official_metrics(metrics: dict, prediction_rows: list[dict], unseen_d
     }
 
 
-def evaluate_checkpoint(config: TrialConfig, checkpoint_path: str | Path, split: str, return_predictions: bool = True) -> dict:
+def evaluate_checkpoint(config: TrialConfig, checkpoint_path: str | Path, split: Split, return_predictions: bool = True) -> dict:
     config = deepcopy(config)
     device = choose_device(config.device)
-    print(f"loading from {checkpoint_path}")
-    print(f"loading from {split_feature_path(config, split)}")
-    if config.normalize_features:
-        print(f"loading from {training_stats_path(config)}")
-    expected_feature_signature = config_signature(feature_signature_payload(config, split))
-    expected_training_stats_signature = config_signature(feature_signature_payload(config, "training"))
-    dataset = MosquitoFeatureDataset(
-        feature_pickle_path=split_feature_path(config, split),
-        feature_stats_path=training_stats_path(config),
+
+    dataloader = get_loader(
+        feature_root=config.feature_root,
+        split=split,
+        batch_size=config.eval_batch_size,
+        num_workers=config.num_workers,
         max_train_frames=None,
         training=False,
-        normalize_features=config.normalize_features,
-        expected_feature_signature=expected_feature_signature,
-        expected_stats_signature=expected_training_stats_signature,
+        shuffle=False,
+        pin_memory=device.type == "cuda",
+        config=config,
+        normalize_features=True,
+        verify_config_signature=True,
+        verify_stats_signature=True,
     )
-    eval_batch_size = config.eval_batch_size
-    dataloader = make_loader(dataset, eval_batch_size, False, config.num_workers, device, pad_collate_fn)
 
     model = build_model(config, device)
     checkpoint = torch.load(checkpoint_path, map_location=device)

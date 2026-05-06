@@ -62,11 +62,11 @@ def evaluate_and_save_outputs(config: TrialConfig, checkpoint_path: Path, output
     model_output_dir = output_dir / model_name
     model_output_dir.mkdir(parents=True, exist_ok=True)
 
-    validation_result = evaluate_checkpoint(config, checkpoint_path, "validation", return_predictions=True)
+    validation_result = evaluate_checkpoint(config, checkpoint_path, Split.VALIDATION, return_predictions=True)
     save_json(model_output_dir / "validation_metrics.json", validation_result["metrics"])
     save_prediction_rows(model_output_dir / "validation_predictions.jsonl", validation_result["predictions"])
 
-    test_result = evaluate_checkpoint(config, checkpoint_path, "test", return_predictions=True)
+    test_result = evaluate_checkpoint(config, checkpoint_path, Split.TEST, return_predictions=True)
     save_json(model_output_dir / "test_metrics.json", test_result["metrics"])
     save_prediction_rows(model_output_dir / "test_predictions.jsonl", test_result["predictions"])
 
