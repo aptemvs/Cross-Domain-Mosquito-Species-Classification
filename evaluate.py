@@ -127,7 +127,7 @@ def evaluate_checkpoint(config: TrialConfig, checkpoint_path: str | Path, split:
     if return_predictions:
         metrics = result["metrics"]
         predictions = result["predictions"]
-        if split == "test":
+        if split == Split.TEST:
             official_result = append_official_metrics(metrics, predictions, load_unseen_domain_by_species(config))
             metrics = official_result["metrics"]
             predictions = official_result["predictions"]
