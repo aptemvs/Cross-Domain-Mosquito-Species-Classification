@@ -18,7 +18,8 @@ import numpy as np
 import torch
 
 from framework.metadata import DOMAIN_NAMES, SPECIES_NAMES
-from schema.trial_config import TrialConfig
+from schema.trial import TrialConfig
+from const.enum import ModelBackend
 
 
 def set_seed(seed: int) -> None:
