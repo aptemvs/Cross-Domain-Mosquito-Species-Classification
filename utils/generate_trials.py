@@ -2,8 +2,8 @@ from collections.abc import Iterator
 import itertools
 from copy import deepcopy
 
-from schema.experiment_config import ExperimentConfig
-from schema.trial_config import TrialConfig
+from schema.experiment import ExperimentConfig
+from schema.trial import TrialConfig
 
 
 def generate_trials(config: ExperimentConfig) -> Iterator[TrialConfig]:
