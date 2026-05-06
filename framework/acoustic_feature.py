@@ -182,8 +182,9 @@ def compute_training_split_stats(feature_root: Path) -> SplitStatistics:
     )
 
 
-def save_split_stats(stats: dict, feature_root: str | Path) -> Path:
-    output_path = feature_stats_path(feature_root)
-    with open(output_path, "w", encoding="utf-8") as handle:
-        json.dump(stats, handle, indent=2)
+def save_split_stats(stats: SplitStatistics, feature_root: str | Path) -> Path:
+    output_path = training_split_stats_path(feature_root)
+    with open(output_path, "w+", encoding="utf-8") as f:
+        f.write(stats.model_dump_json(indent=2))
+
     return output_path
