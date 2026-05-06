@@ -14,10 +14,14 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torchlibrosa.stft import LogmelFilterBank, Spectrogram
+from streaming.base import MDSWriter
 
 from framework.config import config_signature, feature_signature_payload
 from framework.metadata import DOMAIN_TO_INDEX, SPECIES_TO_INDEX, load_id_list, parse_file_id
-from schema.experiment_config import ExperimentConfig
+from schema.experiment import ExperimentConfig
+from schema.data import SplitMetadata, ExtractedFeature
+from const.filename import METADATA_FILENAME
+from const.enum import Split
 
 
 class LogMelSpectrogram(nn.Module):
@@ -93,56 +97,52 @@ def feature_stats_path(feature_root: str | Path) -> Path:
 
 def extract_split_features(
     config: ExperimentConfig,
-    split_name: str,
+    split: Split,
     extractor: LogMelSpectrogram,
     device: torch.device,
 ) -> Path:
     feature_root = config.feature_root
-    feature_root.mkdir(parents=True, exist_ok=True)
-    records = []
-    ids_key = {"training": "train_ids_path", "validation": "val_ids_path", "test": "test_ids_path"}[split_name]
-    ids_path = getattr(config.feature_extraction, ids_key)
-    file_ids = load_id_list(ids_path)
-    total_items = len(file_ids)
+    ids_path = config.feature_extraction.get_split_ids_path(split)
+    split_ids = load_id_list(ids_path)
 
-    for index, file_id in enumerate(file_ids, start=1):
-        species, domain = parse_file_id(file_id)
-        audio_path = config.feature_extraction.dataset_root / f"{file_id}.wav"
-        feature = extract_log_mel_feature(
-            audio_path,
-            extractor,
-            config.feature_extraction.sample_rate,
-            config.feature_extraction.normalize_waveform,
-            device,
-        )
-        print(
-            f"[{split_name}] {index}/{total_items} | "
-            f"id={file_id} | feature_shape={tuple(feature.shape)}"
-        )
-        records.append(
-            {
-                "file_id": file_id,
-                "feature": feature,
-                "num_frames": int(feature.shape[0]),
-                "feature_dim": int(feature.shape[1]),
-                "species": species,
-                "species_label": SPECIES_TO_INDEX[species],
-                "domain": domain,
-                "domain_label": DOMAIN_TO_INDEX[domain],
-                "audio_path": str(audio_path),
-            }
-        )
+    total_items = len(split_ids)
+    output_path = split_feature_dir(feature_root, split)
 
-    payload = {
-        "split": split_name,
-        "num_items": len(records),
-        "config_signature": config_signature(feature_signature_payload(config, split_name)),
-        "config_payload": feature_signature_payload(config, split_name),
-        "items": records,
-    }
-    output_path = split_feature_path(feature_root, split_name)
-    with open(output_path, "wb") as handle:
-        pickle.dump(payload, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    with MDSWriter(out=str(output_path), columns=ExtractedFeature._MDS_COLUMNS) as sink:
+        for file_id in split_ids:
+            species, domain = parse_file_id(file_id)
+            audio_path = config.feature_extraction.dataset_root / f"{file_id}.wav"
+            feature = extract_log_mel_feature(
+                audio_path,
+                extractor,
+                config.feature_extraction.sample_rate,
+                config.feature_extraction.normalize_waveform,
+                device,
+            )
+            sample = ExtractedFeature(
+                feature=feature,
+                file_id=file_id,
+                num_frames=int(feature.shape[0]),
+                feature_dim=int(feature.shape[1]),
+                species=species,
+                species_label=SPECIES_TO_INDEX[species],
+                domain=domain,
+                domain_label=DOMAIN_TO_INDEX[domain],
+                audio_path=audio_path,
+            )
+            sink.write(sample.model_dump())
+
+    metadata = SplitMetadata(
+        split=split,
+        num_items=total_items,
+        config=get_split_extraction_config(config, split),
+    )
+
+    with open(output_path / METADATA_FILENAME, "w+") as f:
+        f.write(metadata.model_dump_json(indent=2))
+
     return output_path
 
 
