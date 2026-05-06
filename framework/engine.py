@@ -53,10 +53,10 @@ def evaluate_model(
 
     with torch.no_grad():
         for batch in dataloader:
-            features = batch["features"].to(device)
-            lengths = batch["lengths"].to(device)
-            batch_species_labels = batch["species_labels"].to(device)
-            batch_domain_labels = batch["domain_labels"].to(device)
+            features = batch.features.to(device)
+            lengths = batch.lengths.to(device)
+            batch_species_labels = batch.species_labels.to(device)
+            batch_domain_labels = batch.domain_labels.to(device)
 
             outputs = model(features, lengths)
             batch_species_logits = outputs["species_logits"]
@@ -80,7 +80,7 @@ def evaluate_model(
             species_labels.append(batch_species_labels.cpu())
             domain_preds.append(batch_domain_preds.cpu())
             domain_labels.append(batch_domain_labels.cpu())
-            batch_domain_names.extend(batch["domain"])
+            batch_domain_names.extend(batch.domain)
 
             if return_predictions:
                 species_logits_cpu = batch_species_logits.detach().cpu()
@@ -160,10 +160,10 @@ def train_one_epoch(model, dataloader, optimizer, device) -> dict:
     total_items = 0
 
     for batch in dataloader:
-        features = batch["features"].to(device)
-        lengths = batch["lengths"].to(device)
-        species_labels = batch["species_labels"].to(device)
-        domain_labels = batch["domain_labels"].to(device)
+        features = batch.features.to(device)
+        lengths = batch.lengths.to(device)
+        species_labels = batch.species_labels.to(device)
+        domain_labels = batch.domain_labels.to(device)
 
         optimizer.zero_grad()
         outputs = model(features, lengths)
