@@ -18,7 +18,7 @@ from framework.config import (
 )
 from framework.dataset import get_loader
 from framework.engine import evaluate_model, train_one_epoch
-from framework.git import get_commit_hash
+from framework.git import get_git_commit_summary
 from framework.metadata import DOMAIN_NAMES, SPECIES_NAMES
 from framework.utilization import (
     acquire_experiment_lock,
@@ -84,7 +84,7 @@ def evaluate_and_save_outputs(config: TrialConfig, checkpoint_path: Path, output
 def train_experiment(trial_config: TrialConfig, overwrite: bool = False) -> dict:
     experiment_name = trial_name(trial_config)
     set_seed(trial_config.seed)
-    commit_hash = get_commit_hash()
+    commit_summary = get_git_commit_summary()
     device = choose_device(trial_config.device)
     output_dir = make_output_dir(trial_config.output_root, experiment_name)
     model_dir = output_dir / "model"
@@ -167,8 +167,8 @@ def train_experiment(trial_config: TrialConfig, overwrite: bool = False) -> dict
         wandb.init(
             entity="biodcase-2026-cd-msc",
             project="BioDCASE_Task5",
-            group=f'"commit_{commit_hash}"',
-            name=f"{experiment_name}_commit_{commit_hash}",
+            group=commit_summary,
+            name=f"{experiment_name}_{commit_summary}",
             config=trial_config.model_dump(mode="json"),
         )
         save_json(run_context_path, current_run_context)
@@ -215,6 +215,23 @@ def train_experiment(trial_config: TrialConfig, overwrite: bool = False) -> dict
         last_val_metrics = {}
         epochs_without_improvement = 0
         epoch = 0
+
+        def numeric_metrics_only(metrics: dict) -> dict:
+            return {
+                key: value
+                for key, value in metrics.items()
+                if value is None or isinstance(value, (int, float))
+            }
+
+        def with_prefix(prefix: str, metrics: dict) -> dict:
+            return {f"{prefix}_{key}": value for key, value in metrics.items()}
+
+        def rounded_prefixed_metrics(prefix: str, metrics: dict) -> dict:
+            payload = {}
+            for key, value in numeric_metrics_only(metrics).items():
+                payload[f"{prefix}_{key}"] = round(value, 6) if value is not None else None
+            return payload
+
         for epoch in range(1, trial_config.epochs + 1):
             train_metrics = train_one_epoch(
                 model=model,
@@ -233,18 +250,8 @@ def train_experiment(trial_config: TrialConfig, overwrite: bool = False) -> dict
 
             row = {
                 "epoch": epoch,
-                "train_loss": round(train_metrics["loss"], 6),
-                "train_species_loss": round(train_metrics["species_loss"], 6),
-                "train_domain_loss": round(train_metrics["domain_loss"], 6),
-                "train_species_accuracy": round(train_metrics["species_accuracy"], 6),
-                "train_domain_accuracy": round(train_metrics["domain_accuracy"], 6),
-                "val_loss": round(val_metrics["loss"], 6),
-                "val_species_loss": round(val_metrics["species_loss"], 6),
-                "val_domain_loss": round(val_metrics["domain_loss"], 6),
-                "val_species_accuracy": round(val_metrics["species_accuracy"], 6),
-                "val_species_balanced_accuracy": round(val_metrics["species_balanced_accuracy"], 6),
-                "val_domain_accuracy": round(val_metrics["domain_accuracy"], 6),
-                "val_domain_balanced_accuracy": round(val_metrics["domain_balanced_accuracy"], 6),
+                **rounded_prefixed_metrics("train", train_metrics),
+                **rounded_prefixed_metrics("val", val_metrics),
                 "lr": optimizer.param_groups[0]["lr"],
             }
             for domain_name in DOMAIN_NAMES:
@@ -255,7 +262,7 @@ def train_experiment(trial_config: TrialConfig, overwrite: bool = False) -> dict
 
             append_metrics(output_dir / "metrics.csv", row)
             logger.info(row)
-            wandb.log(row)
+            wandb.log(numeric_metrics_only(row))
 
             current_score = val_metrics["species_balanced_accuracy"]
             if current_score > best_score:
@@ -303,6 +310,15 @@ def train_experiment(trial_config: TrialConfig, overwrite: bool = False) -> dict
         best_eval = evaluate_and_save_outputs(trial_config, best_checkpoint_path, output_dir, "best_model_eval")
         logger.info("Evaluating final checkpoint outputs.")
         final_eval = evaluate_and_save_outputs(trial_config, final_checkpoint_path, output_dir, "final_model_eval")
+
+        wandb.log(
+            {
+                **with_prefix("best_val", numeric_metrics_only(best_eval["validation_metrics"])),
+                **with_prefix("best_test", numeric_metrics_only(best_eval["test_metrics"])),
+                **with_prefix("final_val", numeric_metrics_only(final_eval["validation_metrics"])),
+                **with_prefix("final_test", numeric_metrics_only(final_eval["test_metrics"])),
+            }
+        )
 
         return {
             "status": "completed",
