@@ -22,9 +22,9 @@ def loss_supervised_contrastive_positive_mask(
     # positive mask (remove diagonal)
     positive_mask = positive_mask & (~self_mask) # (N, N)
 
-    # softmax
-    # logits = similarity.masked_fill(self_mask, float('-inf')) # (N, N)
-    log_prob = F.log_softmax(similarity, dim=1) # (N, N)
+    # softmax — exclude self from denominator (A(i) = {1..N}\{i} per paper Eq. 3)
+    logits = similarity.masked_fill(self_mask, float('-inf')) # (N, N)
+    log_prob = F.log_softmax(logits, dim=1) # (N, N)
     log_prob = log_prob.masked_fill(~positive_mask, 0.0)
 
     # (manually implemented, since we ignore self-similarity - but should be equivalent to above)
