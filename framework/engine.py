@@ -10,6 +10,9 @@ from collections import defaultdict
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torch.utils.data import DataLoader
+
+from schema.data import DataLoaderBatch
 
 
 def balanced_accuracy(preds: torch.Tensor, labels: torch.Tensor, num_classes: int) -> float:
@@ -30,13 +33,13 @@ def accuracy(preds: torch.Tensor, labels: torch.Tensor) -> float:
 
 
 def evaluate_model(
-    model,
-    dataloader,
-    device,
+    model: torch.nn.Module,
+    dataloader: DataLoader[DataLoaderBatch],
+    device: torch.device | str,
     num_species_classes: int,
     num_domain_classes: int,
-    species_names=None,
-    domain_names=None,
+    species_names: dict[int, str] | None = None,
+    domain_names: dict[int, str] | None = None,
     return_predictions: bool = False,
 ) -> dict:
     model.eval()
@@ -53,6 +56,8 @@ def evaluate_model(
 
     with torch.no_grad():
         for batch in dataloader:
+            batch: DataLoaderBatch
+
             features = batch.features.to(device)
             lengths = batch.lengths.to(device)
             batch_species_labels = batch.species_labels.to(device)
@@ -96,7 +101,7 @@ def evaluate_model(
                     true_domain_index = int(domain_labels_cpu[index].item())
                     pred_domain_index = int(domain_preds_cpu[index].item())
                     row = {
-                        "file_id": batch["file_id"][index],
+                        "file_id": batch.file_id[index],
                         "true_species_index": true_species_index,
                         "predicted_species_index": pred_species_index,
                         "true_domain_index": true_domain_index,
@@ -150,7 +155,12 @@ def evaluate_model(
     return metrics
 
 
-def train_one_epoch(model, dataloader, optimizer, device) -> dict:
+def train_one_epoch(
+    model: torch.nn.Module,
+    dataloader: DataLoader[DataLoaderBatch],
+    optimizer: torch.optim.Optimizer,
+    device: torch.device | str,
+) -> dict:
     model.train()
     total_loss = 0.0
     total_species_loss = 0.0
@@ -160,6 +170,8 @@ def train_one_epoch(model, dataloader, optimizer, device) -> dict:
     total_items = 0
 
     for batch in dataloader:
+        batch: DataLoaderBatch
+
         features = batch.features.to(device)
         lengths = batch.lengths.to(device)
         species_labels = batch.species_labels.to(device)
