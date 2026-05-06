@@ -9,9 +9,10 @@ from collections import defaultdict
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
+from framework.loss.loss import loss_all, LossItems
+from framework.model_output import ModelOutput
 from schema.data import DataLoaderBatch
 
 
@@ -49,9 +50,7 @@ def evaluate_model(
     domain_labels = []
     batch_domain_names = []
     prediction_rows = []
-    total_loss = 0.0
-    total_species_loss = 0.0
-    total_domain_loss = 0.0
+    total_loss = LossItems.zero()
     total_items = 0
 
     with torch.no_grad():
@@ -63,22 +62,17 @@ def evaluate_model(
             batch_species_labels = batch.species_labels.to(device)
             batch_domain_labels = batch.domain_labels.to(device)
 
-            outputs = model(features, lengths)
-            batch_species_logits = outputs["species_logits"]
-            batch_domain_logits = outputs["domain_logits"]
-
-            batch_species_loss = F.cross_entropy(batch_species_logits, batch_species_labels)
-            batch_domain_loss = F.cross_entropy(batch_domain_logits, batch_domain_labels)
-            batch_loss = batch_species_loss + batch_domain_loss
+            outputs: ModelOutput = model(features, lengths)
+            batch_species_logits = outputs.species_logits
+            batch_domain_logits = outputs.domain_logits
 
             batch_species_preds = torch.argmax(batch_species_logits, dim=1)
             batch_domain_preds = torch.argmax(batch_domain_logits, dim=1)
             batch_species_probs = torch.softmax(batch_species_logits, dim=1)
 
             batch_size = batch_species_labels.size(0)
-            total_loss += batch_loss.item() * batch_size
-            total_species_loss += batch_species_loss.item() * batch_size
-            total_domain_loss += batch_domain_loss.item() * batch_size
+            loss, loss_items = loss_all(outputs, batch_species_labels, batch_domain_labels)
+            total_loss.add_scaled(loss_items, batch_size)
             total_items += batch_size
 
             species_preds.append(batch_species_preds.cpu())
@@ -122,10 +116,14 @@ def evaluate_model(
     domain_preds = torch.cat(domain_preds)
     domain_labels = torch.cat(domain_labels)
 
+    total_items_or_1 = max(total_items, 1)
     metrics = {
-        "loss": total_loss / max(total_items, 1),
-        "species_loss": total_species_loss / max(total_items, 1),
-        "domain_loss": total_domain_loss / max(total_items, 1),
+        "loss": total_loss.total / total_items_or_1,
+        "species_loss": total_loss.ScL / total_items_or_1,
+        "domain_loss": total_loss.DcL / total_items_or_1,
+        "species_cohesion_contrastive_loss": total_loss.ScoL / total_items_or_1,
+        "domain_invariant_contrastive_loss": total_loss.DicL / total_items_or_1,
+        "species_conditional_distribution_alignment_loss": total_loss.SdaL / total_items_or_1,
         "species_accuracy": accuracy(species_preds, species_labels),
         "species_balanced_accuracy": balanced_accuracy(species_preds, species_labels, num_species_classes),
         "domain_accuracy": accuracy(domain_preds, domain_labels),
@@ -162,9 +160,7 @@ def train_one_epoch(
     device: torch.device | str,
 ) -> dict:
     model.train()
-    total_loss = 0.0
-    total_species_loss = 0.0
-    total_domain_loss = 0.0
+    total_loss = LossItems.zero()
     total_species_correct = 0
     total_domain_correct = 0
     total_items = 0
@@ -178,13 +174,12 @@ def train_one_epoch(
         domain_labels = batch.domain_labels.to(device)
 
         optimizer.zero_grad()
-        outputs = model(features, lengths)
-        species_logits = outputs["species_logits"]
-        domain_logits = outputs["domain_logits"]
+        outputs: ModelOutput = model(features, lengths)
+        species_logits = outputs.species_logits
+        domain_logits = outputs.domain_logits
 
-        species_loss = F.cross_entropy(species_logits, species_labels)
-        domain_loss = F.cross_entropy(domain_logits, domain_labels)
-        loss = species_loss + domain_loss
+        loss, loss_items = loss_all(outputs, species_labels, domain_labels)
+
         loss.backward()
         optimizer.step()
 
@@ -192,17 +187,19 @@ def train_one_epoch(
         domain_preds = torch.argmax(domain_logits, dim=1)
         batch_size = species_labels.size(0)
 
-        total_loss += loss.item() * batch_size
-        total_species_loss += species_loss.item() * batch_size
-        total_domain_loss += domain_loss.item() * batch_size
+        total_loss.add_scaled(loss_items, batch_size)
         total_species_correct += (species_preds == species_labels).sum().item()
         total_domain_correct += (domain_preds == domain_labels).sum().item()
         total_items += batch_size
 
+    total_items_or_1 = max(total_items, 1)
     return {
-        "loss": total_loss / max(total_items, 1),
-        "species_loss": total_species_loss / max(total_items, 1),
-        "domain_loss": total_domain_loss / max(total_items, 1),
-        "species_accuracy": total_species_correct / max(total_items, 1),
-        "domain_accuracy": total_domain_correct / max(total_items, 1),
+        "loss": total_loss.total / total_items_or_1,
+        "species_loss": total_loss.ScL / total_items_or_1,
+        "domain_loss": total_loss.DcL / total_items_or_1,
+        "species_cohesion_contrastive_loss": total_loss.ScoL / total_items_or_1,
+        "domain_invariant_contrastive_loss": total_loss.DicL / total_items_or_1,
+        "species_conditional_distribution_alignment_loss": total_loss.SdaL / total_items_or_1,
+        "species_accuracy": total_species_correct / total_items_or_1,
+        "domain_accuracy": total_domain_correct / total_items_or_1,
     }

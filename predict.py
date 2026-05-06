@@ -16,6 +16,7 @@ from framework.acoustic_feature import LogMelSpectrogram, extract_log_mel_featur
 from framework.config import config_signature, feature_signature_payload, load_config
 from framework.dataset import load_feature_stats, validate_feature_stats_payload
 from framework.metadata import SPECIES_NAMES
+from framework.model_output import ModelOutput
 from framework.utilization import build_model, choose_device, training_stats_path
 
 
@@ -77,8 +78,8 @@ def main() -> None:
     model.eval()
 
     with torch.no_grad():
-        outputs = model(features, lengths)
-        probs = torch.softmax(outputs["species_logits"], dim=1)[0]
+        outputs: ModelOutput = model(features, lengths)
+        probs = torch.softmax(outputs.species_logits, dim=1)[0]
         pred_index = int(torch.argmax(probs).item())
         prob_values = probs.detach().cpu().tolist()
 

@@ -8,6 +8,9 @@ Affiliation: Machine Learning Research Group, University of Oxford
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import List, Tuple
+
+from framework.model_output import ModelOutput
 
 from const.enum import ModelBackend
 from schema.trial import TrialConfig
@@ -147,7 +150,7 @@ class MTRCNNClassifier(nn.Module):
         self.species_classifier = nn.Linear(32, num_species_classes)
         self.domain_classifier = nn.Linear(32, num_domain_classes)
 
-    def forward(self, features: torch.Tensor, lengths: torch.Tensor) -> dict[str, torch.Tensor]:
+    def forward(self, features: torch.Tensor, lengths: torch.Tensor) -> ModelOutput:
         x = features.unsqueeze(1).transpose(1, 3)
         x = self.input_bn(x)
         x = x.transpose(1, 3)
@@ -159,7 +162,8 @@ class MTRCNNClassifier(nn.Module):
         ]
         features = torch.cat(branch_outputs, dim=1)
         embedding = F.gelu(self.embedding(features))
-        return {
-            "species_logits": self.species_classifier(embedding),
-            "domain_logits": self.domain_classifier(embedding),
-        }
+        return ModelOutput(
+            embeddings=embedding,
+            species_logits=self.species_classifier(embedding),
+            domain_logits=self.domain_classifier(embedding),
+        )
