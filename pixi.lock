@@ -304,13 +304,13 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/b1/87/2726603c13c2126cb8ded9e57381b7377f4f0df6ba4408e1af5ddbfdc3dd/soxr-1.0.0-cp312-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/a2/09/77d55d46fd61b4a135c444fc97158ef34a095e5681d0a6c10b75bf356191/sympy-1.14.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/32/d5/f9a850d79b0851d1d4ef6456097579a9005b31fea68726a4ae5f2d82ddd9/threadpoolctl-3.6.0-py3-none-any.whl
+      - pypi: direct+https://github.com/aptemvs/Cross-Domain-Mosquito-Species-Classification/raw/refs/heads/external/torch-2.11.0a0+git70d99e9-cp312-cp312-linux_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/3e/af/ccf007edf442c3c0cd3a98be2c82bc99edc957c04436a759b6e1e01077e0/torchlibrosa-0.1.0-py3-none-any.whl
       - pypi: https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2.2/torchvision-0.26.0%2Brocm7.2.2.git336d36e8-cp312-cp312-linux_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/18/67/36e9267722cc04a6b9f15c7f3441c2363321a3ea07da7ae0c0707beb2a9c/typing_extensions-4.15.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/dc/9b/47798a6c91d8bdb567fe2698fe81e0c6b7cb7ef4d13da4114b41d239f65d/typing_inspection-0.4.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/39/08/aaaad47bc4e9dc8c725e68f9d04865dbcb2052843ff09c97b08904852d84/urllib3-2.6.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/7b/e9/b4bf8f3509dcea1cec52233a38991459654635b5a8e6a494eb912e1b9cfb/wandb-0.26.1-py3-none-manylinux_2_28_x86_64.whl
-      - pypi: ./external/torch-2.11.0a0+git70d99e9-cp312-cp312-linux_x86_64.whl
 packages:
 - conda: https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda
   build_number: 20
@@ -2080,7 +2080,7 @@ packages:
   purls: []
   size: 3301196
   timestamp: 1769460227866
-- pypi: ./external/torch-2.11.0a0+git70d99e9-cp312-cp312-linux_x86_64.whl
+- pypi: direct+https://github.com/aptemvs/Cross-Domain-Mosquito-Species-Classification/raw/refs/heads/external/torch-2.11.0a0+git70d99e9-cp312-cp312-linux_x86_64.whl
   name: torch
   version: 2.11.0a0+git70d99e9
   requires_dist:
