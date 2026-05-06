@@ -61,7 +61,7 @@ def main() -> None:
         if output_dir.exists() and not args.overwrite:
             try:
                 expected_signature = get_split_extraction_config(config, split).signature
-                metadata = load_split_metadata(output_dir, split)
+                metadata = load_split_metadata(feature_root, split)
                 if metadata.config.signature == expected_signature:
                     print(f"loading from {output_dir}")
                     continue
