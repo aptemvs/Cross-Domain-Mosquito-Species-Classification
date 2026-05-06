@@ -146,34 +146,40 @@ def extract_split_features(
     return output_path
 
 
-def compute_training_split_stats(feature_pickle_path: str | Path) -> dict:
-    with open(feature_pickle_path, "rb") as handle:
-        payload = pickle.load(handle)
+def compute_training_split_stats(feature_root: Path) -> SplitStatistics:
+    split = Split.TRAINING
+    metadata = load_split_metadata(feature_root, split)
+    loader = get_loader(
+        feature_root,
+        split=split,
+        batch_size=1,
+        num_workers=0,
+        normalize_features=False,
+        collate_fn=lambda x: x[0],
+    )
 
-    feature_sum = None
-    feature_sq_sum = None
-    total_frames = 0
+    feature_sum = np.zeros((metadata.config.n_mels,), dtype=np.float64)
+    feature_sq_sum = np.zeros((metadata.config.n_mels,), dtype=np.float64)
+    total_frames: int = 0
 
-    for item in payload["items"]:
-        feature = item["feature"]
-        if feature_sum is None:
-            feature_sum = feature.sum(axis=0, dtype=np.float64)
-            feature_sq_sum = np.square(feature, dtype=np.float64).sum(axis=0, dtype=np.float64)
-        else:
-            feature_sum += feature.sum(axis=0, dtype=np.float64)
-            feature_sq_sum += np.square(feature, dtype=np.float64).sum(axis=0, dtype=np.float64)
+    for item in loader:
+        item: ExtractedFeature
+        feature = item.feature.astype(np.float64)
+
+        feature_sum += feature.sum(axis=0, dtype=np.float64)
+        feature_sq_sum += np.square(feature, dtype=np.float64).sum(axis=0, dtype=np.float64)
         total_frames += feature.shape[0]
 
     mean = feature_sum / total_frames
     variance = np.maximum(feature_sq_sum / total_frames - np.square(mean), 1e-12)
     std = np.sqrt(variance)
-    return {
-        "num_frames": int(total_frames),
-        "feature_config_signature": payload["config_signature"],
-        "feature_config_payload": payload["config_payload"],
-        "mean": mean.astype(np.float32).tolist(),
-        "std": std.astype(np.float32).tolist(),
-    }
+
+    return SplitStatistics(
+        num_frames=total_frames,
+        config=metadata.config,
+        mean=mean.astype(np.float32).tolist(),
+        std=std.astype(np.float32).tolist(),
+    )
 
 
 def save_split_stats(stats: dict, feature_root: str | Path) -> Path:
