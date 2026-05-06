@@ -13,12 +13,10 @@ import wandb
 from torch.optim import AdamW
 
 from framework.config import (
-    config_signature,
-    feature_signature_payload,
     load_config,
     run_context_payload,
 )
-from framework.dataset import MosquitoFeatureDataset, pad_collate_fn
+from framework.dataset import get_loader
 from framework.engine import evaluate_model, train_one_epoch
 from framework.git import get_commit_hash
 from framework.metadata import DOMAIN_NAMES, SPECIES_NAMES
@@ -28,21 +26,18 @@ from framework.utilization import (
     build_model,
     choose_device,
     load_json,
-    make_loader,
     make_logger,
     make_output_dir,
     save_json,
     set_seed,
-    split_feature_path,
-    training_stats_path,
     max_train_frames,
     release_experiment_lock,
 )
 
 from utils.generate_trials import generate_trials
-from schema.trial_config import TrialConfig
+from schema.trial import TrialConfig
 from evaluate import evaluate_checkpoint, save_prediction_rows
-
+from const.enum import Split
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train mosquito classifier.")
@@ -180,35 +175,34 @@ def train_experiment(trial_config: TrialConfig, overwrite: bool = False) -> dict
         save_json(output_dir / "resolved_config.json", trial_config.model_dump(mode="json"))
         logger = make_logger(output_dir / "train.log")
 
-        expected_training_feature_signature = config_signature(feature_signature_payload(trial_config, "training"))
-        expected_validation_feature_signature = config_signature(feature_signature_payload(trial_config, "validation"))
-        expected_training_stats_signature = expected_training_feature_signature
-        train_dataset = MosquitoFeatureDataset(
-            feature_pickle_path=split_feature_path(trial_config, "training"),
-            feature_stats_path=training_stats_path(trial_config),
+        train_loader = get_loader(
+            feature_root=trial_config.feature_root,
+            split=Split.TRAINING,
+            batch_size=trial_config.batch_size,
+            num_workers=trial_config.num_workers,
             max_train_frames=max_train_frames(trial_config),
             training=True,
+            shuffle=True,
+            pin_memory=device.type == "cuda",
+            config=trial_config,
             normalize_features=trial_config.normalize_features,
-            expected_feature_signature=expected_training_feature_signature,
-            expected_stats_signature=expected_training_stats_signature,
+            verify_config_signature=True,
+            verify_stats_signature=True,
         )
-        val_dataset = MosquitoFeatureDataset(
-            feature_pickle_path=split_feature_path(trial_config, "validation"),
-            feature_stats_path=training_stats_path(trial_config),
+        val_loader = get_loader(
+            feature_root=trial_config.feature_root,
+            split=Split.VALIDATION,
+            batch_size=trial_config.eval_batch_size,
+            num_workers=trial_config.num_workers,
             max_train_frames=None,
             training=False,
+            shuffle=False,
+            pin_memory=device.type == "cuda",
+            config=trial_config,
             normalize_features=trial_config.normalize_features,
-            expected_feature_signature=expected_validation_feature_signature,
-            expected_stats_signature=expected_training_stats_signature,
+            verify_config_signature=True,
+            verify_stats_signature=True,
         )
-        print(f"loading from {split_feature_path(trial_config, 'training')}")
-        print(f"loading from {split_feature_path(trial_config, 'validation')}")
-        if trial_config.normalize_features:
-            print(f"loading from {training_stats_path(trial_config)}")
-
-        train_loader = make_loader(train_dataset, trial_config.batch_size, True, trial_config.num_workers, device, pad_collate_fn)
-        eval_batch_size = trial_config.eval_batch_size
-        val_loader = make_loader(val_dataset, eval_batch_size, False, trial_config.num_workers, device, pad_collate_fn)
 
         model = build_model(trial_config, device)
         optimizer = AdamW(model.parameters(), lr=trial_config.learning_rate, weight_decay=trial_config.weight_decay)
