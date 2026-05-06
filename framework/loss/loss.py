@@ -51,10 +51,10 @@ def loss_all(
 
     # todo get from config
     w_ScL = 1 # always 1 in paper -> other weights can change relative to it.
-    w_DcL = 0.1
-    w_ScoL = 0.1
-    w_DicL = 0.1
-    w_SdaL = 0.1
+    w_DcL = 0.25
+    w_ScoL = 1
+    w_DicL = 1
+    w_SdaL = 1
 
     ScoL_temperature = 0.01 # default from paper
     DicL_temperature = 0.01 # default from paper
