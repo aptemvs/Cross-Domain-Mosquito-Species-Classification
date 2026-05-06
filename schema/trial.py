@@ -1,6 +1,6 @@
 from pydantic import PositiveInt, PositiveFloat
 
-from schema.experiment_config import ExperimentConfig
+from schema.experiment import ExperimentConfig
 
 
 # Override AutoList properties
