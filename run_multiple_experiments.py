@@ -11,7 +11,7 @@ from pathlib import Path
 from framework.config import load_config, run_context_payload
 from framework.utilization import format_mean_std, load_json, save_json, write_csv, write_summary_table
 from train import trial_name, train_experiment
-from utils.generate_trials import generate_trials
+from framework.utilization import generate_trials
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run 10 fixed-seed training and evaluation jobs.")
