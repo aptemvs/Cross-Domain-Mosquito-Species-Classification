@@ -38,8 +38,8 @@ def evaluate_model(
     device: torch.device | str,
     num_species_classes: int,
     num_domain_classes: int,
-    species_names: dict[int, str] | None = None,
-    domain_names: dict[int, str] | None = None,
+    species_names: list[str] | None = None,
+    domain_names: list[str] | None = None,
     return_predictions: bool = False,
 ) -> dict:
     model.eval()
