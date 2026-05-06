@@ -5,11 +5,9 @@ Email: Yuanbo.Hou@eng.ox.ac.uk
 Affiliation: Machine Learning Research Group, University of Oxford
 """
 
-import hashlib
-import json
 from pathlib import Path
 
-from schema.experiment_config import ExperimentConfig
+from framework.utilization import compute_signature, file_sha256
 
 
 def load_config(path: str | Path) -> ExperimentConfig:
@@ -25,22 +23,6 @@ def load_config(path: str | Path) -> ExperimentConfig:
 
 def config_subset(config: dict, keys: list[str]) -> dict:
     return {key: config[key] for key in keys}
-
-
-def config_signature(payload: dict) -> str:
-    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-
-
-def file_sha256(path: str | Path) -> str:
-    digest = hashlib.sha256()
-    with open(path, "rb") as handle:
-        while True:
-            chunk = handle.read(1024 * 1024)
-            if not chunk:
-                break
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def feature_signature_payload(config: ExperimentConfig, split_name: str) -> dict:

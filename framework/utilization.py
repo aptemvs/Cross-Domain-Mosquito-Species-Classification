@@ -13,6 +13,7 @@ import os
 import random
 import socket
 from pathlib import Path
+import hashlib
 
 import numpy as np
 import torch
@@ -168,3 +169,18 @@ def build_model(config: TrialConfig, device: torch.device):
             ).to(device)
         case _:
             raise ValueError(f"Unknown model backend {backend!r}")
+
+
+def compute_signature(payload: dict) -> str:
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+def file_sha256(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        while True:
+            chunk = handle.read(1024 * 1024)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
