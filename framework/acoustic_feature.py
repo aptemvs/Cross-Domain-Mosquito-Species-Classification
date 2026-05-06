@@ -146,7 +146,7 @@ def extract_split_features(
     return output_path
 
 
-def compute_training_feature_stats(feature_pickle_path: str | Path) -> dict:
+def compute_training_split_stats(feature_pickle_path: str | Path) -> dict:
     with open(feature_pickle_path, "rb") as handle:
         payload = pickle.load(handle)
 
