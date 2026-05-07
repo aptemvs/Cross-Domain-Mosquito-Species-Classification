@@ -1,15 +1,15 @@
-import sys
 import importlib
+import sys
 from contextlib import chdir
 from pathlib import Path
-from typing import Dict
 
 import torch
 import torch.nn as nn
 
 from const.enum import ModelBackend
-from schema.trial import TrialConfig
+from framework.model_output import ModelOutput
 from schema.experiment import ExperimentConfig
+from schema.trial import TrialConfig
 
 
 class EfficientATClassifier(nn.Module):
@@ -46,7 +46,7 @@ class EfficientATClassifier(nn.Module):
 
         return int(features.shape[1])
 
-    def forward(self, features: torch.Tensor, _lengths: torch.Tensor) -> Dict[str, torch.Tensor]:
+    def forward(self, features: torch.Tensor, _lengths: torch.Tensor) -> ModelOutput:
         x = _transpose_input(features)
         _, backbone_features = self.backbone(x)
         if backbone_features.dim() == 1:
@@ -54,10 +54,11 @@ class EfficientATClassifier(nn.Module):
 
         embedding = self.activation(self.embedding(backbone_features))
         embedding = self.embedding_dropout(embedding)
-        return {
-            "species_logits": self.species_classifier(embedding),
-            "domain_logits": self.domain_classifier(embedding),
-        }
+        return ModelOutput(
+            embeddings=embedding,
+            species_logits=self.species_classifier(embedding),
+            domain_logits=self.domain_classifier(embedding),
+        )
 
 
 def _transpose_input(features: torch.Tensor) -> torch.Tensor:

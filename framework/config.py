@@ -4,7 +4,7 @@ Author: Yuanbo Hou
 Email: Yuanbo.Hou@eng.ox.ac.uk
 Affiliation: Machine Learning Research Group, University of Oxford
 """
-
+import json
 from pathlib import Path
 
 from framework.hashing import compute_signature, file_sha256
@@ -12,8 +12,14 @@ from schema.experiment import ExperimentConfig
 from schema.feature import FeatureExtractionConfigDump
 from const.enum import Split
 
+def export_config_schema():
+    schema_path = Path(__file__).parent.parent / "schema" / "experiment.schema.json"
+    schema = ExperimentConfig.model_json_schema()
+    with open(schema_path, "w") as sf:
+        json.dump(schema, sf, indent=2)
 
 def load_config(path: str | Path) -> ExperimentConfig:
+    export_config_schema()
     if isinstance(path, str):
         path = Path(path)
 
