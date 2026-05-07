@@ -16,6 +16,7 @@ from pathlib import Path
 from collections.abc import Iterator
 from copy import deepcopy
 import itertools
+from typing import Any
 
 import numpy as np
 import torch
@@ -175,14 +176,24 @@ def build_model(config: TrialConfig, device: torch.device):
 
 
 def generate_trials(config: ExperimentConfig) -> Iterator[TrialConfig]:
-    dump = config.model_dump()
+    for trial in _generate_param_grid(config.model_dump()):
+        yield TrialConfig.model_validate(trial)
+
+
+def _generate_param_grid(model: dict[str, Any]) -> list[dict[str, Any]]:
+    dump = deepcopy(model)
+
+    for key, item in dump.items():
+        if isinstance(item, dict):
+            dump[key] = _generate_param_grid(item)
+
     iterable_keys = list(filter(lambda key: isinstance(dump[key], list), dump.keys()))
     iterable_values = [dump[key] for key in iterable_keys]
 
+    grid = []
     for values in itertools.product(*iterable_values):
-        trial_dump = deepcopy(dump)
-        trial_dump.update(zip(iterable_keys, values))
+        grid_item = deepcopy(dump)
+        grid_item.update(zip(iterable_keys, values))
+        grid.append(grid_item)
 
-        trial = TrialConfig.model_validate(trial_dump)
-
-        yield trial
+    return grid
