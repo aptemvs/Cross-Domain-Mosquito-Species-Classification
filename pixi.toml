@@ -33,7 +33,7 @@ find-links = [
     { url = "https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2.2/" }
 ]
 # Patched pytorch that allocates at least 256MB for MIOpen Conv Algorithm Finder
-dependency-overrides = { torch = { path = "external/torch-2.11.0a0+git70d99e9-cp312-cp312-linux_x86_64.whl" } }
+dependency-overrides = { torch = { url = "https://github.com/aptemvs/Cross-Domain-Mosquito-Species-Classification/raw/refs/heads/external/torch-2.11.0a0+git70d99e9-cp312-cp312-linux_x86_64.whl" } }
 
 [feature.rocm.pypi-dependencies]
 torch = "==2.11.0"
