@@ -1,4 +1,5 @@
 {
+  "$schema": "../schema/experiment.schema.json",
   "seed": 42,
 
   "feature_root": "./data/feature",

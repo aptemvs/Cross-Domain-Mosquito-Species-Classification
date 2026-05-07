@@ -1,0 +1,259 @@
+{
+  "$defs": {
+    "AutoList_Annotated_float__Gt__": {
+      "items": {
+        "exclusiveMinimum": 0,
+        "type": "number"
+      },
+      "type": "array"
+    },
+    "AutoList_Annotated_int__Gt__": {
+      "items": {
+        "exclusiveMinimum": 0,
+        "type": "integer"
+      },
+      "type": "array"
+    },
+    "AutoList_int_": {
+      "items": {
+        "type": "integer"
+      },
+      "type": "array"
+    },
+    "EfficientATBackend": {
+      "properties": {
+        "pretrained_name": {
+          "title": "Pretrained Name",
+          "type": "string"
+        },
+        "width_mult": {
+          "title": "Width Mult",
+          "type": "number"
+        },
+        "input_dim_t": {
+          "exclusiveMinimum": 0,
+          "title": "Input Dim T",
+          "type": "integer"
+        },
+        "embedding_dim": {
+          "exclusiveMinimum": 0,
+          "title": "Embedding Dim",
+          "type": "integer"
+        },
+        "freeze": {
+          "title": "Freeze",
+          "type": "boolean"
+        },
+        "model": {
+          "const": "EfficientAT",
+          "title": "Model",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pretrained_name",
+        "width_mult",
+        "input_dim_t",
+        "embedding_dim",
+        "freeze",
+        "model"
+      ],
+      "title": "EfficientATBackend",
+      "type": "object"
+    },
+    "FeatureExtractionConfig": {
+      "properties": {
+        "dataset_root": {
+          "format": "path",
+          "title": "Dataset Root",
+          "type": "string"
+        },
+        "train_ids_path": {
+          "format": "path",
+          "title": "Train Ids Path",
+          "type": "string"
+        },
+        "val_ids_path": {
+          "format": "path",
+          "title": "Val Ids Path",
+          "type": "string"
+        },
+        "test_ids_path": {
+          "format": "path",
+          "title": "Test Ids Path",
+          "type": "string"
+        },
+        "sample_rate": {
+          "exclusiveMinimum": 0,
+          "title": "Sample Rate",
+          "type": "integer"
+        },
+        "normalize_waveform": {
+          "title": "Normalize Waveform",
+          "type": "boolean"
+        },
+        "hop_length_ms": {
+          "exclusiveMinimum": 0,
+          "title": "Hop Length Ms",
+          "type": "number"
+        },
+        "win_length_ms": {
+          "exclusiveMinimum": 0,
+          "title": "Win Length Ms",
+          "type": "number"
+        },
+        "n_fft": {
+          "exclusiveMinimum": 0,
+          "title": "N Fft",
+          "type": "integer"
+        },
+        "n_mels": {
+          "exclusiveMinimum": 0,
+          "title": "N Mels",
+          "type": "integer"
+        },
+        "f_min": {
+          "default": 0,
+          "minimum": 0,
+          "title": "F Min",
+          "type": "integer"
+        },
+        "f_max": {
+          "exclusiveMinimum": 0,
+          "title": "F Max",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "dataset_root",
+        "train_ids_path",
+        "val_ids_path",
+        "test_ids_path",
+        "sample_rate",
+        "normalize_waveform",
+        "hop_length_ms",
+        "win_length_ms",
+        "n_mels"
+      ],
+      "title": "FeatureExtractionConfig",
+      "type": "object"
+    },
+    "MTRCNNBackend": {
+      "properties": {
+        "model": {
+          "const": "MTRCNN",
+          "title": "Model",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model"
+      ],
+      "title": "MTRCNNBackend",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "seed": {
+      "$ref": "#/$defs/AutoList_int_"
+    },
+    "feature_root": {
+      "format": "path",
+      "title": "Feature Root",
+      "type": "string"
+    },
+    "output_root": {
+      "format": "path",
+      "title": "Output Root",
+      "type": "string"
+    },
+    "feature_extraction": {
+      "$ref": "#/$defs/FeatureExtractionConfig"
+    },
+    "normalize_features": {
+      "title": "Normalize Features",
+      "type": "boolean"
+    },
+    "batch_size": {
+      "$ref": "#/$defs/AutoList_Annotated_int__Gt__"
+    },
+    "eval_batch_size": {
+      "$ref": "#/$defs/AutoList_Annotated_int__Gt__"
+    },
+    "num_workers": {
+      "exclusiveMinimum": 0,
+      "title": "Num Workers",
+      "type": "integer"
+    },
+    "train_crop_seconds": {
+      "$ref": "#/$defs/AutoList_Annotated_float__Gt__"
+    },
+    "epochs": {
+      "exclusiveMinimum": 0,
+      "title": "Epochs",
+      "type": "integer"
+    },
+    "early_stopping_min_epoch": {
+      "exclusiveMinimum": 0,
+      "title": "Early Stopping Min Epoch",
+      "type": "integer"
+    },
+    "early_stopping_patience": {
+      "exclusiveMinimum": 0,
+      "title": "Early Stopping Patience",
+      "type": "integer"
+    },
+    "learning_rate": {
+      "$ref": "#/$defs/AutoList_Annotated_float__Gt__"
+    },
+    "weight_decay": {
+      "$ref": "#/$defs/AutoList_Annotated_float__Gt__"
+    },
+    "dropout": {
+      "$ref": "#/$defs/AutoList_Annotated_float__Gt__"
+    },
+    "device": {
+      "title": "Device",
+      "type": "string"
+    },
+    "backend": {
+      "discriminator": {
+        "mapping": {
+          "EfficientAT": "#/$defs/EfficientATBackend",
+          "MTRCNN": "#/$defs/MTRCNNBackend"
+        },
+        "propertyName": "model"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/MTRCNNBackend"
+        },
+        {
+          "$ref": "#/$defs/EfficientATBackend"
+        }
+      ],
+      "title": "Backend"
+    }
+  },
+  "required": [
+    "seed",
+    "feature_root",
+    "output_root",
+    "feature_extraction",
+    "normalize_features",
+    "batch_size",
+    "eval_batch_size",
+    "num_workers",
+    "train_crop_seconds",
+    "epochs",
+    "early_stopping_min_epoch",
+    "early_stopping_patience",
+    "learning_rate",
+    "weight_decay",
+    "dropout",
+    "device",
+    "backend"
+  ],
+  "title": "ExperimentConfig",
+  "type": "object"
+}
