@@ -6,12 +6,16 @@ def loss_species_conditional_distribution_alignment(
     embeddings,        # (N, D)
     species_labels,    # (N,)
     domain_labels,     # (N,)
-    sigma=1.0,
 ):
+    # paper does not normalize -> we are stable to embedding magnitude
+    # but loss weight needs to be larger
     embeddings = F.normalize(embeddings, dim=1)
 
-    # full kernel
+    # full kernel — sigma median heuristic
     dist_sq = torch.cdist(embeddings, embeddings, p=2).pow(2) # (N, N)
+    with torch.no_grad():
+        median_dist_sq = torch.median(dist_sq[dist_sq > 0])
+        sigma = (median_dist_sq / 2).sqrt().clamp(min=1e-3)
     k = torch.exp(-dist_sq / (2 * sigma**2))  # (N, N)
 
     total_loss = 0.0

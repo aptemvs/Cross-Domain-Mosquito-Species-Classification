@@ -8,12 +8,11 @@ Affiliation: Machine Learning Research Group, University of Oxford
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import List, Tuple
-
-from framework.model_output import ModelOutput
 
 from const.enum import ModelBackend
+from framework.model_output import ModelOutput
 from schema.trial import TrialConfig
+
 
 class ConvStage(nn.Module):
     def __init__(
