@@ -9,38 +9,40 @@ import argparse
 import json
 from copy import deepcopy
 from pathlib import Path
-from typing import Dict, List, Optional, Union
 
 import torch
 
-from framework.config import config_signature, feature_signature_payload, load_config
-from framework.dataset import MosquitoFeatureDataset, pad_collate_fn
+from framework.config import load_config
+from framework.dataset import get_loader
 from framework.engine import balanced_accuracy, evaluate_model
 from framework.metadata import DOMAIN_NAMES, SPECIES_NAMES
-from framework.utilization import build_model, choose_device, make_loader, split_feature_path, training_stats_path
+from framework.utilization import build_model, choose_device, generate_trials
+from schema.trial import TrialConfig
+from schema.experiment import ExperimentConfig
+from const.enum import Split
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Evaluate saved mosquito classifier.")
     parser.add_argument("--config", type=str, default="configs/default_experiment.json")
     parser.add_argument("--checkpoint", type=str, required=True)
-    parser.add_argument("--split", choices=["validation", "test"], default="test")
+    parser.add_argument("--split", type=Split, choices=[Split.VALIDATION, Split.TEST], default=Split.TEST)
     parser.add_argument("--metrics-out", type=str, default=None)
     parser.add_argument("--predictions-out", type=str, default=None)
     return parser.parse_args()
 
 
-def save_prediction_rows(path: Union[str, Path], rows) -> None:
+def save_prediction_rows(path: str | Path, rows) -> None:
     with open(path, "w", encoding="utf-8") as handle:
         for row in rows:
             handle.write(json.dumps(row) + "\n")
 
 
-def split_summary_path(config: Dict) -> Path:
-    return Path(config["train_ids_path"]).parent / "split_summary.json"
+def split_summary_path(config: ExperimentConfig) -> Path:
+    return config.feature_extraction.train_ids_path.parent / "split_summary.json"
 
 
-def load_unseen_domain_by_species(config: Dict) -> Dict[str, str]:
+def load_unseen_domain_by_species(config: ExperimentConfig) -> dict[str, str]:
     path = split_summary_path(config)
     if not path.exists():
         return {}
@@ -49,7 +51,7 @@ def load_unseen_domain_by_species(config: Dict) -> Dict[str, str]:
     return payload.get("unseen_domain_by_species", {})
 
 
-def annotate_evaluation_partition(prediction_rows: List[Dict], unseen_domain_by_species: Dict[str, str]) -> List[Dict]:
+def annotate_evaluation_partition(prediction_rows: list[dict], unseen_domain_by_species: dict[str, str]) -> list[dict]:
     annotated_rows = []
     for row in prediction_rows:
         annotated_row = dict(row)
@@ -63,7 +65,7 @@ def annotate_evaluation_partition(prediction_rows: List[Dict], unseen_domain_by_
     return annotated_rows
 
 
-def subset_balanced_accuracy(prediction_rows: List[Dict]) -> Optional[float]:
+def subset_balanced_accuracy(prediction_rows: list[dict]) -> float | None:
     if not prediction_rows:
         return None
     preds = torch.tensor([row["predicted_species_index"] for row in prediction_rows], dtype=torch.long)
@@ -71,7 +73,7 @@ def subset_balanced_accuracy(prediction_rows: List[Dict]) -> Optional[float]:
     return balanced_accuracy(preds, labels, len(SPECIES_NAMES))
 
 
-def append_official_metrics(metrics: Dict, prediction_rows: List[Dict], unseen_domain_by_species: Dict[str, str]) -> Dict:
+def append_official_metrics(metrics: dict, prediction_rows: list[dict], unseen_domain_by_species: dict[str, str]) -> dict:
     annotated_rows = annotate_evaluation_partition(prediction_rows, unseen_domain_by_species)
     seen_rows = [row for row in annotated_rows if row["evaluation_partition"] == "seen"]
     unseen_rows = [row for row in annotated_rows if row["evaluation_partition"] == "unseen"]
@@ -90,26 +92,24 @@ def append_official_metrics(metrics: Dict, prediction_rows: List[Dict], unseen_d
     }
 
 
-def evaluate_checkpoint(config: Dict, checkpoint_path: Union[str, Path], split: str, return_predictions: bool = True) -> Dict:
+def evaluate_checkpoint(config: TrialConfig, checkpoint_path: str | Path, split: Split, return_predictions: bool = True) -> dict:
     config = deepcopy(config)
-    device = choose_device(config["device"])
-    print(f"loading from {checkpoint_path}")
-    print(f"loading from {split_feature_path(config, split)}")
-    if config["normalize_features"]:
-        print(f"loading from {training_stats_path(config)}")
-    expected_feature_signature = config_signature(feature_signature_payload(config, split))
-    expected_training_stats_signature = config_signature(feature_signature_payload(config, "training"))
-    dataset = MosquitoFeatureDataset(
-        feature_pickle_path=split_feature_path(config, split),
-        feature_stats_path=training_stats_path(config),
+    device = choose_device(config.device)
+
+    dataloader = get_loader(
+        feature_root=config.feature_root,
+        split=split,
+        batch_size=config.eval_batch_size,
+        num_workers=config.num_workers,
         max_train_frames=None,
         training=False,
-        normalize_features=config["normalize_features"],
-        expected_feature_signature=expected_feature_signature,
-        expected_stats_signature=expected_training_stats_signature,
+        shuffle=False,
+        pin_memory=device.type == "cuda",
+        config=config,
+        normalize_features=True,
+        verify_config_signature=True,
+        verify_stats_signature=True,
     )
-    eval_batch_size = config.get("eval_batch_size", config["batch_size"])
-    dataloader = make_loader(dataset, eval_batch_size, False, config["num_workers"], device, pad_collate_fn)
 
     model = build_model(config, device)
     checkpoint = torch.load(checkpoint_path, map_location=device)
@@ -127,14 +127,14 @@ def evaluate_checkpoint(config: Dict, checkpoint_path: Union[str, Path], split: 
     if return_predictions:
         metrics = result["metrics"]
         predictions = result["predictions"]
-        if split == "test":
+        if split == Split.TEST:
             official_result = append_official_metrics(metrics, predictions, load_unseen_domain_by_species(config))
             metrics = official_result["metrics"]
             predictions = official_result["predictions"]
     else:
         metrics = result
         predictions = None
-    metrics["split"] = split
+    metrics["split"] = split.value
     metrics["checkpoint_path"] = str(checkpoint_path)
     if return_predictions:
         return {
@@ -147,7 +147,14 @@ def evaluate_checkpoint(config: Dict, checkpoint_path: Union[str, Path], split: 
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
-    result = evaluate_checkpoint(config, args.checkpoint, args.split, return_predictions=True)
+
+    trials = list(generate_trials(config))
+    if len(trials) > 1:
+        raise ValueError(
+            "Config describes more than one trial. Use run_multiple_experiments.py"
+        )
+
+    result = evaluate_checkpoint(trials[0], args.checkpoint, args.split, return_predictions=True)
     metrics = result["metrics"]
     predictions = result["predictions"]
     if args.metrics_out:

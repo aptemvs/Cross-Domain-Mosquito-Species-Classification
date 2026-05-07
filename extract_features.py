@@ -6,21 +6,25 @@ Affiliation: Machine Learning Research Group, University of Oxford
 """
 
 import argparse
-from pathlib import Path
 
 import torch
 
 from framework.acoustic_feature import (
     LogMelSpectrogram,
-    compute_training_feature_stats,
+    compute_training_split_stats,
     extract_split_features,
-    feature_stats_path,
-    save_feature_stats,
-    split_feature_path,
+    save_split_stats,
 )
-from framework.config import config_signature, feature_signature_payload, load_config
-from framework.dataset import load_feature_payload
-from framework.utilization import choose_device, load_json
+from framework.config import get_split_extraction_config, load_config
+from framework.dataset import (
+    load_training_split_stats,
+    training_split_stats_path,
+    split_feature_dir,
+    load_split_metadata,
+)
+from framework.utilization import choose_device
+from schema.feature import FeatureExtractionConfig
+from const.enum import Split
 
 
 def parse_args() -> argparse.Namespace:
@@ -30,15 +34,15 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def build_feature_extractor(config: dict, device: torch.device) -> LogMelSpectrogram:
+def build_feature_extractor(config: FeatureExtractionConfig, device: torch.device) -> LogMelSpectrogram:
     extractor = LogMelSpectrogram(
-        sample_rate=config["sample_rate"],
-        n_fft=config["n_fft"],
-        hop_length=config["hop_length"],
-        win_length=config["win_length"],
-        n_mels=config["n_mels"],
-        fmin=config["fmin"],
-        fmax=config["fmax"],
+        sample_rate=config.sample_rate,
+        n_fft=config.n_fft,
+        hop_length=config.hop_length,
+        win_length=config.win_length,
+        n_mels=config.n_mels,
+        fmin=config.f_min,
+        fmax=config.f_max,
     ).to(device)
     extractor.eval()
     return extractor
@@ -47,42 +51,45 @@ def build_feature_extractor(config: dict, device: torch.device) -> LogMelSpectro
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
-    device = choose_device(config["device"])
-    extractor = build_feature_extractor(config, device)
-    feature_root = Path(config["feature_root"])
+    device = choose_device(config.device)
+    extractor = build_feature_extractor(config.feature_extraction, device)
+    feature_root = config.feature_root
 
-    split_jobs = [
-        "training",
-        "validation",
-        "test",
-    ]
-    for split_name in split_jobs:
-        output_path = split_feature_path(feature_root, split_name)
-        expected_signature = config_signature(feature_signature_payload(config, split_name))
-        if output_path.exists() and not args.overwrite:
-            payload = load_feature_payload(output_path)
-            if payload.get("config_signature") == expected_signature:
-                print(f"loading from {output_path}")
-                continue
-        print(f"extracting {split_name} features to {output_path}")
+    for split in list(Split):
+        output_dir = split_feature_dir(feature_root, split)
+
+        if output_dir.exists() and not args.overwrite:
+            try:
+                expected_signature = get_split_extraction_config(config, split).signature
+                metadata = load_split_metadata(feature_root, split)
+                if metadata.config.signature == expected_signature:
+                    print(f"loading from {output_dir}")
+                    continue
+            except Exception:
+                pass
+
+        print(f"extracting {split.value} features to {output_dir}")
         extract_split_features(
             config=config,
-            split_name=split_name,
+            split=split,
             extractor=extractor,
             device=device,
         )
 
-    stats_path = feature_stats_path(feature_root)
-    training_signature = config_signature(feature_signature_payload(config, "training"))
+    stats_path = training_split_stats_path(feature_root)
     if stats_path.exists() and not args.overwrite:
-        stats_payload = load_json(stats_path)
-        if stats_payload.get("feature_config_signature") == training_signature:
-            print(f"loading from {stats_path}")
-            return
+        try:
+            training_signature = get_split_extraction_config(config, Split.TRAINING).signature
+            stats = load_training_split_stats(feature_root)
+            if stats.config.signature == training_signature:
+                print(f"loading from {stats_path}")
+                return
+        except Exception:
+            pass
 
     print(f"computing training feature stats to {stats_path}")
-    stats = compute_training_feature_stats(split_feature_path(feature_root, "training"))
-    save_feature_stats(stats, feature_root)
+    stats = compute_training_split_stats(feature_root)
+    save_split_stats(stats, feature_root)
 
 
 if __name__ == "__main__":

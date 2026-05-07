@@ -1,20 +1,31 @@
 {
   "seed": 42,
 
-  "dataset_root": "./data/raw_audio",
-  "train_ids_path": "./data/metadata/Training_ids.txt",
-  "val_ids_path": "./data/metadata/Validation_ids.txt",
-  "test_ids_path": "./data/metadata/Test_ids.txt",
   "feature_root": "./data/feature",
   "output_root": "./outputs",
 
-  "sample_rate": 8000,
+  "feature_extraction": {
+    "dataset_root": "./data/raw_audio",
+    "train_ids_path": "./data/metadata/Training_ids.txt",
+    "val_ids_path": "./data/metadata/Validation_ids.txt",
+    "test_ids_path": "./data/metadata/Test_ids.txt",
+  
+    "sample_rate": 8000,
+    "normalize_waveform": true,
+    "n_fft": 512,
+    "win_length_ms": 64,
+    "hop_length_ms": 10,
+    "n_mels": 64,
+    "fmin": 0,
+    "fmax": 4000
+  },
+
+  "normalize_features": true,
+
   "batch_size": 64,
   "eval_batch_size": 8,
   "num_workers": 4,
   "train_crop_seconds": 2.0,
-  "normalize_waveform": true,
-  "normalize_features": true,
   "epochs": 100,
   "early_stopping_min_epoch": 10,
   "early_stopping_patience": 5,
@@ -23,11 +34,12 @@
   "dropout": 0.2,
   "device": "auto",
 
-  "model_backend": "EfficientAT",
-
-  "efficientat_pretrained_name": "mn04_as",
-  "efficientat_width_mult": 0.4,
-  "efficientat_input_dim_t": 200,
-  "efficientat_embedding_dim": 128,
-  "efficientat_freeze": false
+  "backend": {
+    "model": "EfficientAT",
+    "pretrained_name": "mn04_as",
+    "width_mult": 0.4,
+    "input_dim_t": 200,
+    "embedding_dim": 128,
+    "freeze": false
+  }
 }

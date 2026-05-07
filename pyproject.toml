@@ -10,6 +10,8 @@ dependencies = [
     "torchvision>=0.20.0",
     "torchlibrosa>=0.1.0",
     "wandb>=0.25.1",
+    "pydantic>=2.13.3",
+    "mosaicml-streaming>=0.10.0",
 ]
 
 [tool.uv]

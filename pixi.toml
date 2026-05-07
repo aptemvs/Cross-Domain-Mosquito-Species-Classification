@@ -18,6 +18,8 @@ numpy = ">=2.4.3, <3"
 torchvision = ">=0.26.0, <0.27"
 torchlibrosa = ">=0.1.0, <0.2"
 wandb = ">=0.26.1, <0.27"
+pydantic = ">=2.13.3, <3"
+mosaicml-streaming = ">=0.10.0, <0.11"
 
 [feature.cuda]
 system-requirements = { cuda = "12.8" }

@@ -5,19 +5,22 @@ Email: Yuanbo.Hou@eng.ox.ac.uk
 Affiliation: Machine Learning Research Group, University of Oxford
 """
 
-import json
-import pickle
 from pathlib import Path
-from typing import Dict, Union
 
 import librosa
 import numpy as np
 import torch
 import torch.nn as nn
 from torchlibrosa.stft import LogmelFilterBank, Spectrogram
+from streaming.base import MDSWriter
 
-from framework.config import config_signature, feature_signature_payload
+from framework.config import get_split_extraction_config
 from framework.metadata import DOMAIN_TO_INDEX, SPECIES_TO_INDEX, load_id_list, parse_file_id
+from framework.dataset import get_loader, split_feature_dir, load_split_metadata, training_split_stats_path
+from schema.experiment import ExperimentConfig
+from schema.data import SplitMetadata, SplitStatistics, ExtractedFeature
+from const.filename import METADATA_FILENAME
+from const.enum import Split
 
 
 class LogMelSpectrogram(nn.Module):
@@ -60,7 +63,7 @@ class LogMelSpectrogram(nn.Module):
         return logmel.squeeze(1)
 
 
-def load_waveform(path: Union[str, Path], sample_rate: int, normalize_waveform: bool) -> np.ndarray:
+def load_waveform(path: str | Path, sample_rate: int, normalize_waveform: bool) -> np.ndarray:
     waveform, _ = librosa.load(Path(path), sr=sample_rate, mono=True)
     if normalize_waveform and waveform.size:
         peak = np.abs(waveform).max()
@@ -70,7 +73,7 @@ def load_waveform(path: Union[str, Path], sample_rate: int, normalize_waveform: 
 
 
 def extract_log_mel_feature(
-    audio_path: Union[str, Path],
+    audio_path: str | Path,
     extractor: LogMelSpectrogram,
     sample_rate: int,
     normalize_waveform: bool,
@@ -83,100 +86,96 @@ def extract_log_mel_feature(
     return feature
 
 
-def split_feature_path(feature_root: Union[str, Path], split_name: str) -> Path:
-    return Path(feature_root) / f"{split_name.lower()}_features.pkl"
-
-
-def feature_stats_path(feature_root: Union[str, Path]) -> Path:
-    return Path(feature_root) / "training_feature_stats.json"
-
-
 def extract_split_features(
-    config: Dict,
-    split_name: str,
+    config: ExperimentConfig,
+    split: Split,
     extractor: LogMelSpectrogram,
     device: torch.device,
 ) -> Path:
-    feature_root = Path(config["feature_root"])
-    feature_root.mkdir(parents=True, exist_ok=True)
-    records = []
-    ids_path = config[{"training": "train_ids_path", "validation": "val_ids_path", "test": "test_ids_path"}[split_name]]
-    file_ids = load_id_list(ids_path)
-    total_items = len(file_ids)
+    feature_root = config.feature_root
+    ids_path = config.feature_extraction.get_split_ids_path(split)
+    split_ids = load_id_list(ids_path)
 
-    for index, file_id in enumerate(file_ids, start=1):
-        species, domain = parse_file_id(file_id)
-        audio_path = Path(config["dataset_root"]) / f"{file_id}.wav"
-        feature = extract_log_mel_feature(
-            audio_path,
-            extractor,
-            config["sample_rate"],
-            config["normalize_waveform"],
-            device,
-        )
-        print(
-            f"[{split_name}] {index}/{total_items} | "
-            f"id={file_id} | feature_shape={tuple(feature.shape)}"
-        )
-        records.append(
-            {
-                "file_id": file_id,
-                "feature": feature,
-                "num_frames": int(feature.shape[0]),
-                "feature_dim": int(feature.shape[1]),
-                "species": species,
-                "species_label": SPECIES_TO_INDEX[species],
-                "domain": domain,
-                "domain_label": DOMAIN_TO_INDEX[domain],
-                "audio_path": str(audio_path),
-            }
-        )
+    total_items = len(split_ids)
+    output_path = split_feature_dir(feature_root, split)
 
-    payload = {
-        "split": split_name,
-        "num_items": len(records),
-        "config_signature": config_signature(feature_signature_payload(config, split_name)),
-        "config_payload": feature_signature_payload(config, split_name),
-        "items": records,
-    }
-    output_path = split_feature_path(feature_root, split_name)
-    with open(output_path, "wb") as handle:
-        pickle.dump(payload, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    with MDSWriter(out=str(output_path), columns=ExtractedFeature._MDS_COLUMNS) as sink:
+        for file_id in split_ids:
+            species, domain = parse_file_id(file_id)
+            audio_path = config.feature_extraction.dataset_root / f"{file_id}.wav"
+            feature = extract_log_mel_feature(
+                audio_path,
+                extractor,
+                config.feature_extraction.sample_rate,
+                config.feature_extraction.normalize_waveform,
+                device,
+            )
+            sample = ExtractedFeature(
+                feature=feature,
+                file_id=file_id,
+                num_frames=int(feature.shape[0]),
+                feature_dim=int(feature.shape[1]),
+                species=species,
+                species_label=SPECIES_TO_INDEX[species],
+                domain=domain,
+                domain_label=DOMAIN_TO_INDEX[domain],
+                audio_path=audio_path,
+            )
+            sink.write(sample.model_dump())
+
+    metadata = SplitMetadata(
+        split=split,
+        num_items=total_items,
+        config=get_split_extraction_config(config, split),
+    )
+
+    with open(output_path / METADATA_FILENAME, "w+") as f:
+        f.write(metadata.model_dump_json(indent=2))
+
     return output_path
 
 
-def compute_training_feature_stats(feature_pickle_path: Union[str, Path]) -> Dict:
-    with open(feature_pickle_path, "rb") as handle:
-        payload = pickle.load(handle)
+def compute_training_split_stats(feature_root: Path) -> SplitStatistics:
+    split = Split.TRAINING
+    metadata = load_split_metadata(feature_root, split)
+    loader = get_loader(
+        feature_root,
+        split=split,
+        batch_size=1,
+        num_workers=0,
+        normalize_features=False,
+        collate_fn=lambda x: x[0],
+    )
 
-    feature_sum = None
-    feature_sq_sum = None
-    total_frames = 0
+    feature_sum = np.zeros((metadata.config.n_mels,), dtype=np.float64)
+    feature_sq_sum = np.zeros((metadata.config.n_mels,), dtype=np.float64)
+    total_frames: int = 0
 
-    for item in payload["items"]:
-        feature = item["feature"]
-        if feature_sum is None:
-            feature_sum = feature.sum(axis=0, dtype=np.float64)
-            feature_sq_sum = np.square(feature, dtype=np.float64).sum(axis=0, dtype=np.float64)
-        else:
-            feature_sum += feature.sum(axis=0, dtype=np.float64)
-            feature_sq_sum += np.square(feature, dtype=np.float64).sum(axis=0, dtype=np.float64)
+    for item in loader:
+        item: ExtractedFeature
+        feature = item.feature.astype(np.float64)
+
+        feature_sum += feature.sum(axis=0, dtype=np.float64)
+        feature_sq_sum += np.square(feature, dtype=np.float64).sum(axis=0, dtype=np.float64)
         total_frames += feature.shape[0]
 
     mean = feature_sum / total_frames
     variance = np.maximum(feature_sq_sum / total_frames - np.square(mean), 1e-12)
     std = np.sqrt(variance)
-    return {
-        "num_frames": int(total_frames),
-        "feature_config_signature": payload["config_signature"],
-        "feature_config_payload": payload["config_payload"],
-        "mean": mean.astype(np.float32).tolist(),
-        "std": std.astype(np.float32).tolist(),
-    }
+
+    return SplitStatistics(
+        num_frames=total_frames,
+        config=metadata.config,
+        mean=mean.astype(np.float32).tolist(),
+        std=std.astype(np.float32).tolist(),
+    )
 
 
-def save_feature_stats(stats: Dict, feature_root: Union[str, Path]) -> Path:
-    output_path = feature_stats_path(feature_root)
-    with open(output_path, "w", encoding="utf-8") as handle:
-        json.dump(stats, handle, indent=2)
+def save_split_stats(stats: SplitStatistics, feature_root: str | Path) -> Path:
+    output_path = training_split_stats_path(feature_root)
+    with open(output_path, "w+", encoding="utf-8") as f:
+        f.write(stats.model_dump_json(indent=2))
+
     return output_path

@@ -6,16 +6,17 @@ Affiliation: Machine Learning Research Group, University of Oxford
 """
 
 import argparse
-from copy import deepcopy
 from pathlib import Path
 
 import torch
 import wandb
 from torch.optim import AdamW
 
-from const import model_backend
-from framework.config import config_signature, feature_signature_payload, load_config, run_context_payload
-from framework.dataset import MosquitoFeatureDataset, pad_collate_fn
+from framework.config import (
+    load_config,
+    run_context_payload,
+)
+from framework.dataset import get_loader
 from framework.engine import evaluate_model, train_one_epoch
 from framework.git import get_git_commit_summary
 from framework.metadata import DOMAIN_NAMES, SPECIES_NAMES
@@ -25,16 +26,18 @@ from framework.utilization import (
     build_model,
     choose_device,
     load_json,
-    make_loader,
     make_logger,
     make_output_dir,
     save_json,
     set_seed,
-    split_feature_path,
-    training_stats_path,
     max_train_frames,
     release_experiment_lock,
 )
+
+from framework.utilization import generate_trials
+from schema.trial import TrialConfig
+from evaluate import evaluate_checkpoint, save_prediction_rows
+from const.enum import Split
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train mosquito classifier.")
@@ -43,35 +46,27 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def experiment_name_for_seed(seed: int, config: dict) -> str:
-    batch_size = int(config["batch_size"])
-    epochs = int(config["epochs"])
-    min_epoch = int(config["early_stopping_min_epoch"])
-    patience = int(config["early_stopping_patience"])
-    backend = str(config["model_backend"])
+def trial_name(trial: TrialConfig) -> str:
+    seed = trial.seed
+    batch_size = trial.batch_size
+    epochs = trial.epochs
+    min_epoch = trial.early_stopping_min_epoch
+    patience = trial.early_stopping_patience
+    model_name = trial.backend.model.value
 
-    match backend:
-        case model_backend.MODEL_BACKEND_MTRCNN:
-            model = "MTRCNN"
-        case model_backend.MODEL_BACKEND_EFFICIENTAT:
-            model = str(config["efficientat_pretrained_name"])
-        case _:
-            raise ValueError(f"Unknown model backend {backend!r}")
-
-    return f"{model}_seed{seed}_B{batch_size}_E{epochs}_earlystop_min{min_epoch}_pati{patience}"
+    return f"{model_name}_seed{seed}_B{batch_size}_E{epochs}_earlystop_min{min_epoch}_pati{patience}"
 
 
-def evaluate_and_save_outputs(config: dict, checkpoint_path: Path, output_dir: Path, model_name: str) -> dict:
-    from evaluate import evaluate_checkpoint, save_prediction_rows
+def evaluate_and_save_outputs(config: TrialConfig, checkpoint_path: Path, output_dir: Path, model_name: str) -> dict:
 
     model_output_dir = output_dir / model_name
     model_output_dir.mkdir(parents=True, exist_ok=True)
 
-    validation_result = evaluate_checkpoint(config, checkpoint_path, "validation", return_predictions=True)
+    validation_result = evaluate_checkpoint(config, checkpoint_path, Split.VALIDATION, return_predictions=True)
     save_json(model_output_dir / "validation_metrics.json", validation_result["metrics"])
     save_prediction_rows(model_output_dir / "validation_predictions.jsonl", validation_result["predictions"])
 
-    test_result = evaluate_checkpoint(config, checkpoint_path, "test", return_predictions=True)
+    test_result = evaluate_checkpoint(config, checkpoint_path, Split.TEST, return_predictions=True)
     save_json(model_output_dir / "test_metrics.json", test_result["metrics"])
     save_prediction_rows(model_output_dir / "test_predictions.jsonl", test_result["predictions"])
 
@@ -86,13 +81,12 @@ def evaluate_and_save_outputs(config: dict, checkpoint_path: Path, output_dir: P
     }
 
 
-def train_experiment(config: dict, overwrite: bool = False) -> dict:
-    config = deepcopy(config)
-    config["experiment_name"] = experiment_name_for_seed(config["seed"], config)
-    set_seed(config["seed"])
+def train_experiment(trial_config: TrialConfig, overwrite: bool = False) -> dict:
+    experiment_name = trial_name(trial_config)
+    set_seed(trial_config.seed)
     commit_summary = get_git_commit_summary()
-    device = choose_device(config["device"])
-    output_dir = make_output_dir(config["output_root"], config["experiment_name"])
+    device = choose_device(trial_config.device)
+    output_dir = make_output_dir(trial_config.output_root, experiment_name)
     model_dir = output_dir / "model"
     model_dir.mkdir(parents=True, exist_ok=True)
     run_context_path = output_dir / "run_context.json"
@@ -110,7 +104,7 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
         final_eval_dir / "test_metrics.json",
         final_eval_dir / "test_predictions.jsonl",
     ]
-    current_run_context = run_context_payload(config)
+    current_run_context = run_context_payload(trial_config)
 
     if (
         run_context_path.exists()
@@ -134,8 +128,12 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
                 "output_dir": str(best_eval_dir),
                 "validation_metrics": best_validation_metrics,
                 "test_metrics": best_test_metrics,
-                "validation_metrics_path": str(best_eval_dir / "validation_metrics.json"),
-                "validation_predictions_path": str(best_eval_dir / "validation_predictions.jsonl"),
+                "validation_metrics_path": str(
+                    best_eval_dir / "validation_metrics.json"
+                ),
+                "validation_predictions_path": str(
+                    best_eval_dir / "validation_predictions.jsonl"
+                ),
                 "test_metrics_path": str(best_eval_dir / "test_metrics.json"),
                 "test_predictions_path": str(best_eval_dir / "test_predictions.jsonl"),
             },
@@ -143,14 +141,18 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
                 "output_dir": str(final_eval_dir),
                 "validation_metrics": final_validation_metrics,
                 "test_metrics": final_test_metrics,
-                "validation_metrics_path": str(final_eval_dir / "validation_metrics.json"),
-                "validation_predictions_path": str(final_eval_dir / "validation_predictions.jsonl"),
+                "validation_metrics_path": str(
+                    final_eval_dir / "validation_metrics.json"
+                ),
+                "validation_predictions_path": str(
+                    final_eval_dir / "validation_predictions.jsonl"
+                ),
                 "test_metrics_path": str(final_eval_dir / "test_metrics.json"),
                 "test_predictions_path": str(final_eval_dir / "test_predictions.jsonl"),
             },
         }
 
-    lock_path = acquire_experiment_lock(output_dir, config["experiment_name"])
+    lock_path = acquire_experiment_lock(output_dir, experiment_name)
     if lock_path is None:
         print(f"already running: {output_dir / '.experiment.lock'}")
         return {
@@ -166,47 +168,46 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
             entity="biodcase-2026-cd-msc",
             project="BioDCASE_Task5",
             group=commit_summary,
-            name=f"{config['experiment_name']}_{commit_summary}",
-            config=config,
+            name=f"{experiment_name}_{commit_summary}",
+            config=trial_config.model_dump(mode="json"),
         )
         save_json(run_context_path, current_run_context)
-        save_json(output_dir / "resolved_config.json", config)
+        save_json(output_dir / "resolved_config.json", trial_config.model_dump(mode="json"))
         logger = make_logger(output_dir / "train.log")
 
-        expected_training_feature_signature = config_signature(feature_signature_payload(config, "training"))
-        expected_validation_feature_signature = config_signature(feature_signature_payload(config, "validation"))
-        expected_training_stats_signature = expected_training_feature_signature
-        train_dataset = MosquitoFeatureDataset(
-            feature_pickle_path=split_feature_path(config, "training"),
-            feature_stats_path=training_stats_path(config),
-            max_train_frames=max_train_frames(config),
+        train_loader = get_loader(
+            feature_root=trial_config.feature_root,
+            split=Split.TRAINING,
+            batch_size=trial_config.batch_size,
+            num_workers=trial_config.num_workers,
+            max_train_frames=max_train_frames(trial_config),
             training=True,
-            normalize_features=config["normalize_features"],
-            expected_feature_signature=expected_training_feature_signature,
-            expected_stats_signature=expected_training_stats_signature,
+            shuffle=True,
+            pin_memory=device.type == "cuda",
+            config=trial_config,
+            normalize_features=trial_config.normalize_features,
+            verify_config_signature=True,
+            verify_stats_signature=True,
         )
-        val_dataset = MosquitoFeatureDataset(
-            feature_pickle_path=split_feature_path(config, "validation"),
-            feature_stats_path=training_stats_path(config),
+        val_loader = get_loader(
+            feature_root=trial_config.feature_root,
+            split=Split.VALIDATION,
+            batch_size=trial_config.eval_batch_size,
+            num_workers=trial_config.num_workers,
             max_train_frames=None,
             training=False,
-            normalize_features=config["normalize_features"],
-            expected_feature_signature=expected_validation_feature_signature,
-            expected_stats_signature=expected_training_stats_signature,
+            shuffle=False,
+            pin_memory=device.type == "cuda",
+            config=trial_config,
+            normalize_features=trial_config.normalize_features,
+            verify_config_signature=True,
+            verify_stats_signature=True,
         )
-        print(f"loading from {split_feature_path(config, 'training')}")
-        print(f"loading from {split_feature_path(config, 'validation')}")
-        if config["normalize_features"]:
-            print(f"loading from {training_stats_path(config)}")
 
-        train_loader = make_loader(train_dataset, config["batch_size"], True, config["num_workers"], device, pad_collate_fn)
-        eval_batch_size = int(config["eval_batch_size"])
-        val_loader = make_loader(val_dataset, eval_batch_size, False, config["num_workers"], device, pad_collate_fn)
-
-        model = build_model(config, device)
-        optimizer = AdamW(model.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"])
-        early_stopping_min_epoch = int(config["early_stopping_min_epoch"])
-        early_stopping_patience = int(config["early_stopping_patience"])
+        model = build_model(trial_config, device)
+        optimizer = AdamW(model.parameters(), lr=trial_config.learning_rate, weight_decay=trial_config.weight_decay)
+        early_stopping_min_epoch = trial_config.early_stopping_min_epoch
+        early_stopping_patience = trial_config.early_stopping_patience
 
         best_score = float("-inf")
         best_epoch = 0
@@ -231,7 +232,7 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
                 payload[f"{prefix}_{key}"] = round(value, 6) if value is not None else None
             return payload
 
-        for epoch in range(1, config["epochs"] + 1):
+        for epoch in range(1, trial_config.epochs + 1):
             train_metrics = train_one_epoch(
                 model=model,
                 dataloader=train_loader,
@@ -272,7 +273,7 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
                 torch.save(
                     {
                         "model_state_dict": model.state_dict(),
-                        "config": config,
+                        "config": trial_config,
                         "epoch": epoch,
                         "val_metrics": best_val_metrics,
                         "selection_metric": "species_balanced_accuracy",
@@ -297,7 +298,7 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
         torch.save(
             {
                 "model_state_dict": model.state_dict(),
-                "config": config,
+                "config": trial_config,
                 "epoch": epoch,
                 "val_metrics": last_val_metrics,
             },
@@ -306,9 +307,9 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
         logger.info("Saved final checkpoint to %s", final_checkpoint_path)
 
         logger.info("Evaluating best checkpoint outputs.")
-        best_eval = evaluate_and_save_outputs(config, best_checkpoint_path, output_dir, "best_model_eval")
+        best_eval = evaluate_and_save_outputs(trial_config, best_checkpoint_path, output_dir, "best_model_eval")
         logger.info("Evaluating final checkpoint outputs.")
-        final_eval = evaluate_and_save_outputs(config, final_checkpoint_path, output_dir, "final_model_eval")
+        final_eval = evaluate_and_save_outputs(trial_config, final_checkpoint_path, output_dir, "final_model_eval")
 
         wandb.log(
             {
@@ -340,7 +341,12 @@ def train_experiment(config: dict, overwrite: bool = False) -> dict:
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
-    result = train_experiment(config, overwrite=args.overwrite)
+    trials = list(generate_trials(config))
+    if len(trials) > 1:
+        raise ValueError(
+            "Config describes more than one trial. Use run_multiple_experiments.py"
+        )
+    result = train_experiment(trials[0], overwrite=args.overwrite)
     if result["status"] == "running":
         return
 

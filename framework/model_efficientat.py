@@ -7,20 +7,26 @@ from typing import Dict
 import torch
 import torch.nn as nn
 
+from const.enum import ModelBackend
+from schema.trial import TrialConfig
+from schema.experiment import ExperimentConfig
+
 
 class EfficientATClassifier(nn.Module):
 
-    def __init__(self, config: dict, num_species_classes: int, num_domain_classes: int) -> None:
+    def __init__(self, config: TrialConfig, num_species_classes: int, num_domain_classes: int) -> None:
+        assert config.backend.model == ModelBackend.EFFICIENTAT
+
         super().__init__()
 
         self.backbone = _get_backbone(config)
-        if bool(config["efficientat_freeze"]):
+        if config.backend.freeze:
             for parameter in self.backbone.features.parameters():
                 parameter.requires_grad = False
 
         feature_dim = self._infer_efficientat_feature_dim(config)
-        embedding_dim = int(config["efficientat_embedding_dim"])
-        dropout = float(config["dropout"])
+        embedding_dim = config.backend.embedding_dim
+        dropout = config.dropout
 
         self.embedding = nn.Linear(feature_dim, embedding_dim)
         self.activation = nn.GELU()
@@ -28,9 +34,11 @@ class EfficientATClassifier(nn.Module):
         self.species_classifier = nn.Linear(embedding_dim, num_species_classes)
         self.domain_classifier = nn.Linear(embedding_dim, num_domain_classes)
 
-    def _infer_efficientat_feature_dim(self, config) -> int:
+    def _infer_efficientat_feature_dim(self, config: TrialConfig) -> int:
+        assert config.backend.model == ModelBackend.EFFICIENTAT
+
         with torch.no_grad():
-            dummy = torch.zeros(1, 1, int(config["n_mels"]), config["efficientat_input_dim_t"])
+            dummy = torch.zeros(1, 1, config.feature_extraction.n_mels, config.backend.input_dim_t)
             _, features = self.backbone(dummy)
 
         feature_dim = int(features.shape[1])
@@ -69,7 +77,9 @@ def _efficientat_root() -> Path:
     return Path(__file__).resolve().parents[1] / "third_party" / "EfficientAT"
 
 
-def _get_backbone(config) -> nn.Module:
+def _get_backbone(config: ExperimentConfig) -> nn.Module:
+    assert config.backend.model == ModelBackend.EFFICIENTAT
+
     root = _efficientat_root()
     if not root.exists():
         raise RuntimeError("./third_party/EfficientAT folder doesnt exist."
@@ -92,8 +102,8 @@ def _get_backbone(config) -> nn.Module:
         return get_mn(
             # see /third_party/EfficientAT/README.md for correct params
             # for pretrained models. some have to match.
-            pretrained_name=str(config["efficientat_pretrained_name"]),
-            width_mult=float(config["efficientat_width_mult"]),
-            input_dim_f=int(config["n_mels"]),
-            input_dim_t=config["efficientat_input_dim_t"],
+            pretrained_name=config.backend.pretrained_name,
+            width_mult=config.backend.width_mult,
+            input_dim_f=config.feature_extraction.n_mels,
+            input_dim_t=config.backend.input_dim_t,
         )
